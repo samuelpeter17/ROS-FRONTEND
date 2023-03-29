@@ -11,10 +11,16 @@ Open a new terminal in the Mac or PowerShell in Windows.
 (`ros.env` contains environment variables for ROS that can be modified before running the command in step 3.)
 
 ## 2. Running a ROS gazebo simulation for testing
-Once the other terminal shows the following type of messages 
+Once the other terminal shows the following type of messages and remains running without errors
 
-    Starting mac-ros_novnc_1 ... done
-    Starting mac-ros_ros_1   ... done
+     ⠿ Container vnc-ros-ros-1    Cr...                           0.0s
+     ⠿ Container vnc-ros-novnc-1  Recreated                       0.1s
+    Attaching to vnc-ros-novnc-1, vnc-ros-ros-1
+    ... (comment: more messages, with the latest being in the current version of Docker)
+
+    vnc-ros-novnc-1  | 2023-03-29 19:45:10,919 INFO success: xterm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+
+(Note that there might be some slight variations of outputs, as long as the terminal is "occupied" by that command, you can go to the next step)
 
 open another terminal:
 1. Run `docker-compose exec ros bash` (`docker-compose up` has to be running)
