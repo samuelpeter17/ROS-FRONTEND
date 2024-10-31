@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ROS Frontend</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+</head>
+<body>
+    <h1>ROS Data Display</h1>
+    <div id="rosMessage">Waiting for ROS message...</div>
+
+    <script>
+        // Connect to ROS
+        const ros = new ROSLIB.Ros({
+            url: 'ws://localhost:9090'  // WebSocket URL for rosbridge_server
+        });
+
+        ros.on('connection', () => {
+            console.log('Connected to ROS');
+        });
+
+        ros.on('error', (error) => {
+            console.error('Error connecting to ROS: ', error);
+        });
+
+        ros.on('close', () => {
+            console.log('Connection to ROS closed.');
+        });
+
+        // Subscribe to a ROS topic
+        const listener = new ROSLIB.Topic({
+            ros: ros,
+            name: '/your_ros_topic',  // Replace with your actual topic name
+            messageType: 'std_msgs/String'
+        });
+
+        listener.subscribe((message) => {
+            document.getElementById('rosMessage').innerText = message.data;
+            console.log('Received message on ' + listener.name + ': ' + message.data);
+        });
+    </script>
+</body>
+</html>

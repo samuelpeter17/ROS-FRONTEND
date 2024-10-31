@@ -2,7 +2,7 @@ version: '3'
 services:
   ros:
     build: .
-    command: tail -f /dev/null
+    command: bash -c "source /opt/ros/melodic/setup.bash && roslaunch rosbridge_server rosbridge_websocket.launch"
     volumes: 
       - ./workspace:/root/catkin_ws/
     environment:
@@ -11,6 +11,7 @@ services:
       - ros.env
     networks:
       - x11
+
   novnc:  
     image: theasp/novnc:latest
     env_file:
@@ -19,5 +20,15 @@ services:
       - "8080:8080"
     networks:
       - x11
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5000:80"  # Map port 80 inside container to port 5000 on the host
+    networks:
+      - x11
+    depends_on:
+      - ros
 networks:
   x11:
