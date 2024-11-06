@@ -12,8 +12,9 @@
     <ul id="message-history"></ul>
 
     <script>
+        // Adjusted fetch to use the "ros" service in Docker Compose network
         function fetchMessages() {
-            fetch('http://localhost:5000/ros_message')  // Ensure this URL is correct for your setup
+            fetch('http://localhost:5000/ros_message')
                 .then(response => response.json())
                 .then(data => {
                     // Update the latest message
