@@ -1,34 +1,37 @@
 version: '3'
 services:
   ros:
-    build: .
-    command: bash -c "source /opt/ros/melodic/setup.bash && roslaunch rosbridge_server rosbridge_websocket.launch"
-    volumes: 
-      - ./workspace:/root/catkin_ws/
-    environment:
-      - DISPLAY=novnc:0.0
-    env_file:
-      - ros.env
+    build: .  # Assuming you have a Dockerfile for the ROS setup
+    ports:
+      - "5000:5000"  # Expose the Flask API port
     networks:
-      - x11
+      - my-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/publish_message"]
+      interval: 30s
+      retries: 3
+      start_period: 30s   # Give extra time for Flask to initialize
+      timeout: 10s
 
-  novnc:  
+  frontend:
+    build: ./frontend  # Path to the Dockerfile for frontend
+    ports:
+      - "5001:80"  # Map frontend port 80 to host port 5001
+    networks:
+      - my-net  # Ensure both frontend and ros are on the same network
+    depends_on:
+      - ros
+    command: nginx -g 'daemon off;'
+
+  novnc:
     image: theasp/novnc:latest
-    env_file:
-      - novnc.env
     ports:
       - "8080:8080"
     networks:
-      - x11
-
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "5000:80"  # Map port 80 inside container to port 5000 on the host
-    networks:
-      - x11
+      - my-net
     depends_on:
       - ros
+
 networks:
-  x11:
+  my-net:
+    driver: bridge  # Explicitly define the bridge driver

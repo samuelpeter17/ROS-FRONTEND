@@ -2,42 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ROS Frontend</title>
-    <script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+    <title>ROS Message Display</title>
 </head>
 <body>
-    <h1>ROS Data Display</h1>
-    <div id="rosMessage">Waiting for ROS message...</div>
+    <h1>Latest ROS Message:</h1>
+    <p id="latest-message">Loading...</p>
+
+    <h2>Message History:</h2>
+    <ul id="message-history"></ul>
 
     <script>
-        // Connect to ROS
-        const ros = new ROSLIB.Ros({
-            url: 'ws://localhost:9090'  // WebSocket URL for rosbridge_server
-        });
+        function fetchMessages() {
+            fetch('http://localhost:5000/ros_message')
+                .then(response => response.json())
+                .then(data => {
+                    // Update the latest message
+                    document.getElementById('latest-message').textContent = data.message;
 
-        ros.on('connection', () => {
-            console.log('Connected to ROS');
-        });
+                    // Update the message history
+                    const historyList = document.getElementById('message-history');
+                    historyList.innerHTML = '';  // Clear the list
+                    data["message-history"].forEach(msg => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = msg;
+                        historyList.appendChild(listItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching messages:', error);
+                });
+        }
 
-        ros.on('error', (error) => {
-            console.error('Error connecting to ROS: ', error);
-        });
-
-        ros.on('close', () => {
-            console.log('Connection to ROS closed.');
-        });
-
-        // Subscribe to a ROS topic
-        const listener = new ROSLIB.Topic({
-            ros: ros,
-            name: '/your_ros_topic',  // Replace with your actual topic name
-            messageType: 'std_msgs/String'
-        });
-
-        listener.subscribe((message) => {
-            document.getElementById('rosMessage').innerText = message.data;
-            console.log('Received message on ' + listener.name + ': ' + message.data);
-        });
+        // Fetch messages every second
+        setInterval(fetchMessages, 1000);
     </script>
 </body>
 </html>

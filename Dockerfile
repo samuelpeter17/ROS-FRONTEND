@@ -1,6 +1,7 @@
-# Dockerfile (ROS)
+# Use the official ROS Melodic image as the base image
 FROM osrf/ros:melodic-desktop-full
 
+# Install necessary dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     iputils-ping \
@@ -11,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     nano \
     vim \
     htop \
+    python3-pip \
+    python3-dev \
     ros-melodic-joy \
     ros-melodic-teleop-twist-joy \
     ros-melodic-teleop-twist-keyboard \
@@ -34,15 +37,31 @@ RUN apt-get update && apt-get install -y \
     ros-melodic-interactive-markers \
     ros-melodic-turtlebot3-gazebo \
     ros-melodic-rosbridge-server \
-    ros-melodic-web-video-server
+    ros-melodic-web-video-server \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /root/catkin_ws/src
+# Install Python packages using pip
+RUN pip3 install \
+    flask \
+    flask-restful \
+    pyyaml \
+    rospkg
+
+# Create catkin workspace
 WORKDIR /root/catkin_ws
-RUN /bin/bash -c "source /opt/ros/melodic/setup.bash"
-RUN echo "source /opt/ros/melodic/setup.sh" >> /root/.bashrc
-RUN echo "source /root/catkin_ws/devel/setup.bash" >> /root/.bashrc
-RUN echo "defshell -bash" >> ~/.screenrc
-WORKDIR /root/catkin_ws/src
 
-# Start rosbridge_server automatically
-CMD ["roslaunch", "rosbridge_server", "rosbridge_websocket.launch"]
+# Copy your ROS package source code (replace with your actual path)
+COPY src/your_ros_package /root/catkin_ws/src
+
+# Build the workspace
+RUN /bin/bash -c "source /opt/ros/melodic/setup.bash && catkin_make"
+
+# Copy the Flask app and start script
+COPY app.py /root/catkin_ws/app.py
+COPY start_ros_flask.sh /root/start_ros_flask.sh
+
+# Make the start script executable
+RUN chmod +x /root/start_ros_flask.sh
+
+# Set the default command to execute the start script
+CMD ["/root/start_ros_flask.sh"]
