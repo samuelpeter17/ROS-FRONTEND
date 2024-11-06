@@ -21,6 +21,9 @@ message_history = {
     '/ros_message': []
 }
 
+# Initialize a counter for unique messages
+message_counter = 1
+
 # Callback function that stores messages for the /ros_message topic
 def message_callback(msg):
     # Add the received message to the message history
@@ -37,10 +40,12 @@ rospy.Subscriber('/ros_message', String, message_callback)
 
 # Function to automatically publish messages to /ros_message every 2 seconds
 def publish_message(event):
+    global message_counter
     pub = rospy.Publisher('/ros_message', String, queue_size=10)
     msg = String()
-    msg.data = "Automated message from ROS at every interval"
+    msg.data = f"Automated message #{message_counter} from ROS"
     pub.publish(msg)
+    message_counter += 1  # Increment the counter after each message
 
 # Set a timer to publish messages every 2 seconds
 rospy.Timer(rospy.Duration(2), publish_message)
