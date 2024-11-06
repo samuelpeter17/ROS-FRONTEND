@@ -21,6 +21,9 @@ message_history = {
     '/ros_message': []
 }
 
+# Initialize a counter for unique messages
+message_counter = 1
+
 # Callback function that stores messages for the /ros_message topic
 def message_callback(msg):
     # Add the received message to the message history
@@ -35,6 +38,18 @@ rospy.init_node('flask_ros_node')
 # Subscribe to the /ros_message topic
 rospy.Subscriber('/ros_message', String, message_callback)
 
+# Function to automatically publish messages to /ros_message every 2 seconds
+def publish_message(event):
+    global message_counter
+    pub = rospy.Publisher('/ros_message', String, queue_size=10)
+    msg = String()
+    msg.data = f"Automated message #{message_counter} from ROS"
+    pub.publish(msg)
+    message_counter += 1  # Increment the counter after each message
+
+# Set a timer to publish messages every 2 seconds
+rospy.Timer(rospy.Duration(2), publish_message)
+
 @app.route('/ros_message', methods=['GET'])
 def get_ros_message():
     # Return the latest message and message history
@@ -42,8 +57,9 @@ def get_ros_message():
     return jsonify({"message": latest_message, "message-history": message_history['/ros_message']})
 
 @app.route('/publish_message', methods=['POST'])
-def publish_ros_message_route():
-    # Publish a new message to the /ros_message topic via HTTP request
+def publish_ros_message():
+    # Publish a new message to the /ros_message topic
+    pub = rospy.Publisher('/ros_message', String, queue_size=10)
     msg = String()
     msg.data = "Hello from Flask to ROS!"
     pub.publish(msg)

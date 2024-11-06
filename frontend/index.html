@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ROS Message Display</title>
 </head>
 <body>
@@ -12,14 +13,13 @@
     <ul id="message-history"></ul>
 
     <script>
-        // Adjusted fetch to use the "ros" service in Docker Compose network
         function fetchMessages() {
             fetch('http://localhost:5000/ros_message')
                 .then(response => response.json())
                 .then(data => {
                     // Update the latest message
                     document.getElementById('latest-message').textContent = data.message;
-    
+
                     // Update the message history
                     const historyList = document.getElementById('message-history');
                     historyList.innerHTML = '';  // Clear the list
@@ -33,9 +33,9 @@
                     console.error('Error fetching messages:', error);
                 });
         }
-    
+
         // Fetch messages every second
         setInterval(fetchMessages, 1000);
-    </script>    
+    </script>
 </body>
 </html>
