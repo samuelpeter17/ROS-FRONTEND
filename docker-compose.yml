@@ -12,6 +12,8 @@ services:
       retries: 3
       start_period: 30s   # Give extra time for Flask to initialize
       timeout: 10s
+    env_file:
+      - ros.env
 
   frontend:
     build: ./frontend  # Path to the Dockerfile for frontend
@@ -31,6 +33,8 @@ services:
       - my-net
     depends_on:
       - ros
+    env_file:
+      - novnc.env
 
 networks:
   my-net:
