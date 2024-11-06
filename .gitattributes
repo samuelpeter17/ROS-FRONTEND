@@ -1,2 +1,9 @@
-# Ensure all shell scripts use Unix-style line endings
+# Ensure all shell scripts use Unix-style line endings (LF)
 *.sh text eol=lf
+
+# Automatically handle line endings for all text files
+* text=auto
+
+# Handle other common text files with specific line endings
+*.txt text eol=lf
+*.md text eol=lf

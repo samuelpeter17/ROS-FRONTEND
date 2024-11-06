@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Ensure the script uses LF line endings, even on Windows-based systems (this is handled by .gitattributes)
+
 # Source the ROS setup
 source /opt/ros/melodic/setup.bash
 
