@@ -13,12 +13,12 @@
 
     <script>
         function fetchMessages() {
-            fetch('http://localhost:5000/ros_message')
+            fetch('http://localhost:5000/ros_message')  // Ensure this URL is correct for your setup
                 .then(response => response.json())
                 .then(data => {
                     // Update the latest message
                     document.getElementById('latest-message').textContent = data.message;
-
+    
                     // Update the message history
                     const historyList = document.getElementById('message-history');
                     historyList.innerHTML = '';  // Clear the list
@@ -32,9 +32,9 @@
                     console.error('Error fetching messages:', error);
                 });
         }
-
+    
         // Fetch messages every second
         setInterval(fetchMessages, 1000);
-    </script>
+    </script>    
 </body>
 </html>

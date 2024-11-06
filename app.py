@@ -35,6 +35,16 @@ rospy.init_node('flask_ros_node')
 # Subscribe to the /ros_message topic
 rospy.Subscriber('/ros_message', String, message_callback)
 
+# Publish a message to /ros_message every 2 seconds
+def publish_message(event):
+    pub = rospy.Publisher('/ros_message', String, queue_size=10)
+    msg = String()
+    msg.data = "Automated message from ROS at every interval"
+    pub.publish(msg)
+
+# Set a timer to publish messages every 2 seconds
+rospy.Timer(rospy.Duration(2), publish_message)
+
 @app.route('/ros_message', methods=['GET'])
 def get_ros_message():
     # Return the latest message and message history
