@@ -35,6 +35,18 @@ rospy.init_node('flask_ros_node')
 # Subscribe to the /ros_message topic
 rospy.Subscriber('/ros_message', String, message_callback)
 
+# Publisher for the /ros_message topic
+pub = rospy.Publisher('/ros_message', String, queue_size=10)
+
+# Function to periodically publish messages
+def publish_ros_message(event):
+    msg = String()
+    msg.data = "Automated message from ROS at every interval"
+    pub.publish(msg)
+
+# Timer to call the publish_ros_message function every 5 seconds
+rospy.Timer(rospy.Duration(5), publish_ros_message)
+
 @app.route('/ros_message', methods=['GET'])
 def get_ros_message():
     # Return the latest message and message history
@@ -42,9 +54,8 @@ def get_ros_message():
     return jsonify({"message": latest_message, "message-history": message_history['/ros_message']})
 
 @app.route('/publish_message', methods=['POST'])
-def publish_ros_message():
-    # Publish a new message to the /ros_message topic
-    pub = rospy.Publisher('/ros_message', String, queue_size=10)
+def publish_ros_message_route():
+    # Publish a new message to the /ros_message topic via HTTP request
     msg = String()
     msg.data = "Hello from Flask to ROS!"
     pub.publish(msg)
