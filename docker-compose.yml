@@ -1,27 +1,38 @@
+# docker-compose.yml
 version: '3'
 services:
   ros:
-    build: .  # Assuming you have a Dockerfile for the ROS setup
+    build: .
     ports:
-      - "5000:5000"  # Expose the Flask API port
+      - "5000:5000"  # Flask API port
+      - "11311:11311"  # ROS master port
+      - "11345:11345"  # Gazebo master port
+      - "5900:5900"  # VNC port
     networks:
       - my-net
+    environment:
+      - DISPLAY=:99
+      - RESOLUTION=1280x720
+    volumes:
+      - ./workspace:/root/catkin_ws/src
+      - /tmp/.X11-unix:/tmp/.X11-unix  # Share X11 socket
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/publish_message"]
       interval: 30s
       retries: 3
-      start_period: 30s   # Give extra time for Flask to initialize
+      start_period: 30s
       timeout: 10s
+    env_file:
+      - ros.env
 
   frontend:
-    build: ./frontend  # Path to the Dockerfile for frontend
+    build: ./frontend
     ports:
-      - "5001:80"  # Map frontend port 80 to host port 5001
+      - "5001:80"
     networks:
-      - my-net  # Ensure both frontend and ros are on the same network
+      - my-net
     depends_on:
       - ros
-    command: nginx -g 'daemon off;'
 
   novnc:
     image: theasp/novnc:latest
@@ -29,9 +40,15 @@ services:
       - "8080:8080"
     networks:
       - my-net
+    environment:
+      - DISPLAY_WIDTH=1280
+      - DISPLAY_HEIGHT=720
+      - DISPLAY=:99
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix  # Share X11 socket
     depends_on:
       - ros
 
 networks:
   my-net:
-    driver: bridge  # Explicitly define the bridge driver
+    driver: bridge
