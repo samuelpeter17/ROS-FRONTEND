@@ -2,6 +2,10 @@ from flask import Flask, jsonify  # type: ignore
 import rospy  # type: ignore
 from std_msgs.msg import String  # type: ignore
 from nav_msgs.msg import Odometry  # type: ignore
+from sensor_msgs.msg import Image  # type: ignore
+from sensor_msgs.msg import LaserScan  # type: ignore
+from gazebo_msgs.msg import ModelStates  # type: ignore
+from rosgraph_msgs.msg import Clock  # type: ignore
 import subprocess
 import sys
 
@@ -24,7 +28,11 @@ CORS(app)  # Enable CORS for all routes
 # Dictionary to store messages for each topic
 message_history = {
     '/ros_message': [],
-    '/odom': []
+    '/odom': [],
+    '/camera/rgb/image_raw': [],
+    '/scan': [],
+    '/gazebo/model_states': [],
+    '/clock': []
 }
 
 # -----------------------------------
@@ -69,9 +77,7 @@ def get_ros_message():
 # -----------------------------------
 # /odom Topic Functionality
 # -----------------------------------
-# Callback for /odom topic
 def odom_callback(msg):
-    # Convert Odometry message to a simplified dictionary (e.g., position and orientation)
     odom_data = {
         'position': {
             'x': msg.pose.pose.position.x,
@@ -85,20 +91,82 @@ def odom_callback(msg):
             'w': msg.pose.pose.orientation.w
         }
     }
-    # Store the message in the history
     message_history['/odom'].append(odom_data)
-    # Keep only the last 10 messages
     if len(message_history['/odom']) > 10:
         message_history['/odom'].pop(0)
 
-# Subscriber for /odom
 rospy.Subscriber('/odom', Odometry, odom_callback)
 
 @app.route('/odom', methods=['GET'])
 def get_odom_message():
-    # Return the latest message and message history for /odom
     latest_message = message_history['/odom'][-1] if message_history['/odom'] else "No messages yet."
     return jsonify({"message": latest_message, "message-history": message_history['/odom']})
+
+# -----------------------------------
+# /camera/rgb/image_raw Topic Functionality
+# -----------------------------------
+def image_callback(msg):
+    # Simplified representation of image data (actual image processing not included)
+    image_data = {"height": msg.height, "width": msg.width, "encoding": msg.encoding}
+    message_history['/camera/rgb/image_raw'].append(image_data)
+    if len(message_history['/camera/rgb/image_raw']) > 10:
+        message_history['/camera/rgb/image_raw'].pop(0)
+
+rospy.Subscriber('/camera/rgb/image_raw', Image, image_callback)
+
+@app.route('/camera/rgb/image_raw', methods=['GET'])
+def get_image_message():
+    latest_message = message_history['/camera/rgb/image_raw'][-1] if message_history['/camera/rgb/image_raw'] else "No messages yet."
+    return jsonify({"message": latest_message, "message-history": message_history['/camera/rgb/image_raw']})
+
+# -----------------------------------
+# /scan Topic Functionality
+# -----------------------------------
+def scan_callback(msg):
+    scan_data = {"ranges": msg.ranges[:10], "intensities": msg.intensities[:10]}  # Send a slice for brevity
+    message_history['/scan'].append(scan_data)
+    if len(message_history['/scan']) > 10:
+        message_history['/scan'].pop(0)
+
+rospy.Subscriber('/scan', LaserScan, scan_callback)
+
+@app.route('/scan', methods=['GET'])
+def get_scan_message():
+    latest_message = message_history['/scan'][-1] if message_history['/scan'] else "No messages yet."
+    return jsonify({"message": latest_message, "message-history": message_history['/scan']})
+
+# -----------------------------------
+# /gazebo/model_states Topic Functionality
+# -----------------------------------
+def model_states_callback(msg):
+    models = [{"name": name, "position": {"x": pose.position.x, "y": pose.position.y, "z": pose.position.z}} 
+              for name, pose in zip(msg.name, msg.pose)]
+    message_history['/gazebo/model_states'].append(models)
+    if len(message_history['/gazebo/model_states']) > 10:
+        message_history['/gazebo/model_states'].pop(0)
+
+rospy.Subscriber('/gazebo/model_states', ModelStates, model_states_callback)
+
+@app.route('/gazebo/model_states', methods=['GET'])
+def get_model_states_message():
+    latest_message = message_history['/gazebo/model_states'][-1] if message_history['/gazebo/model_states'] else "No messages yet."
+    return jsonify({"message": latest_message, "message-history": message_history['/gazebo/model_states']})
+
+# -----------------------------------
+# /clock Topic Functionality
+# -----------------------------------
+def clock_callback(msg):
+    clock_data = {"secs": msg.clock.secs, "nsecs": msg.clock.nsecs}
+    message_history['/clock'].append(clock_data)
+    if len(message_history['/clock']) > 10:
+        message_history['/clock'].pop(0)
+
+rospy.Subscriber('/clock', Clock, clock_callback)
+
+@app.route('/clock', methods=['GET'])
+def get_clock_message():
+    latest_message = message_history['/clock'][-1] if message_history['/clock'] else "No messages yet."
+    return jsonify({"message": latest_message, "message-history": message_history['/clock']})
 
 # -----------------------------------
 # Flask App Runner
