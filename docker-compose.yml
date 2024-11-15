@@ -2,33 +2,40 @@ version: '3'
 services:
   ros:
     build: .  # Assuming you have a Dockerfile for the ROS setup
-    ports:
-      - "5000:5000"  # Expose the Flask API port
+    command: /root/start_ros_flask.sh  # Run the script to start roscore and Flask app
+    volumes:
+      - ./workspace:/root/catkin_ws/  # Bind mount your workspace
+    environment:
+      - DISPLAY=novnc:0.0  # Display for the frontend (x11)
+    env_file:
+      - ros.env
     networks:
       - my-net
+    ports:
+      - "5000:5000"  # Expose Flask API port
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/publish_message"]
       interval: 30s
       retries: 3
-      start_period: 30s   # Give extra time for Flask to initialize
+      start_period: 30s  # Give extra time for Flask to initialize
       timeout: 10s
     env_file:
       - ros.env
 
   frontend:
-    build: ./frontend  # Path to the Dockerfile for frontend
+    build: ./frontend  # Path to the Dockerfile for the frontend (adjust if needed)
     ports:
-      - "5001:80"  # Map frontend port 80 to host port 5001
+      - "5001:80"  # Expose frontend port 80 on host port 5001
     networks:
       - my-net  # Ensure both frontend and ros are on the same network
     depends_on:
-      - ros
-    command: nginx -g 'daemon off;'
+      - ros  # Wait for ROS service to be ready
+    command: nginx -g 'daemon off;'  # Start nginx for the frontend
 
   novnc:
     image: theasp/novnc:latest
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Expose noVNC port
     networks:
       - my-net
     depends_on:
@@ -37,5 +44,5 @@ services:
       - novnc.env
 
 networks:
-  my-net:
-    driver: bridge  # Explicitly define the bridge driver
+  my-net:  # Create a new network for ROS and frontend communication
+    driver: bridge

@@ -1,16 +1,16 @@
-from flask import Flask, jsonify
-import rospy
-from std_msgs.msg import String
+from flask import Flask, jsonify # type: ignore
+import rospy # type: ignore
+from std_msgs.msg import String # type: ignore
 import subprocess
 import sys
 
 # Check and install flask-cors if not already installed
 try:
-    from flask_cors import CORS
+    from flask_cors import CORS # type: ignore
 except ImportError:
     print("Flask-CORS not found. Installing it now...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "flask-cors"])
-    from flask_cors import CORS
+    from flask_cors import CORS # type: ignore
 
 # Initialize the Flask app
 app = Flask(__name__)
