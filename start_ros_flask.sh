@@ -11,5 +11,11 @@ roscore &
 # Wait for roscore to initialize (adjust sleep time if needed)
 sleep 5  
 
+# Start the TurtleBot3 simulation in the background
+roslaunch turtlebot3_gazebo turtlebot3_world.launch &
+
+# Allow the simulation to start
+sleep 5  
+
 # Run the Flask app
 python3 /root/catkin_ws/app.py
