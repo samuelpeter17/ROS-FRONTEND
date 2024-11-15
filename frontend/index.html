@@ -3,154 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROS Message Display</title>
+    <title>ROS Topics Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
 </head>
 <body>
     <h1>ROS Topics Display</h1>
 
-    <div>
+    <!-- /ros_message Section -->
+    <div id="ros-message-section" class="topic">
         <h2>/ros_message</h2>
         <p><strong>Latest:</strong> <span id="ros_message-latest">Loading...</span></p>
         <h3>History:</h3>
         <ul id="ros_message-history"></ul>
     </div>
 
-    <div>
+    <!-- /odom Section -->
+    <div id="odom-section" class="topic">
         <h2>/odom</h2>
-        <p><strong>Latest:</strong> <span id="odom-latest">Loading...</span></p>
+        <p><strong>Latest:</strong></p>
+        <ul id="odom-latest">
+            <li id="odom-angular-vel">Angular Velocity: Loading...</li>
+            <li id="odom-linear-vel">Linear Velocity: Loading...</li>
+            <li id="odom-orientation">Orientation: Loading...</li>
+            <li id="odom-position">Position: Loading...</li>
+        </ul>
         <h3>History:</h3>
         <ul id="odom-history"></ul>
     </div>
 
-    <div>
-        <h2>/camera/rgb/image_raw</h2>
-        <p id="camera-info">Receiving raw image data. See console for details.</p>
-    </div>
-
-    <div>
-        <h2>/scan</h2>
-        <p><strong>Latest:</strong> <span id="scan-latest">Loading...</span></p>
-        <h3>History:</h3>
-        <ul id="scan-history"></ul>
-    </div>
-
-    <div>
-        <h2>/gazebo/model_states</h2>
-        <p><strong>Latest:</strong> <span id="model_states-latest">Loading...</span></p>
-        <h3>History:</h3>
-        <ul id="model_states-history"></ul>
-    </div>
-
-    <div>
-        <h2>/clock</h2>
-        <p><strong>Latest:</strong> <span id="clock-latest">Loading...</span></p>
-        <h3>History:</h3>
-        <ul id="clock-history"></ul>
-    </div>
-
     <script>
-        const topics = [
-            { name: '/ros_message', latestId: 'ros_message-latest', historyId: 'ros_message-history' },
-            { name: '/odom', latestId: 'odom-latest', historyId: 'odom-history' },
-            { name: '/camera/rgb/image_raw', latestId: 'camera-info', historyId: null }, // Special handling for image data
-            { name: '/scan', latestId: 'scan-latest', historyId: 'scan-history' },
-            { name: '/gazebo/model_states', latestId: 'model_states-latest', historyId: 'model_states-history' },
-            { name: '/clock', latestId: 'clock-latest', historyId: 'clock-history' },
-        ];
-
-        function formatData(data) {
-            if (Array.isArray(data)) {
-                // If data is an array (like ranges), join values with commas for easier readability
-                return data.join(', ');
-            } else if (typeof data === 'object') {
-                // Pretty-print JSON data if it's an object (like a complex object)
-                return JSON.stringify(data, null, 2);
-            }
-            return data; // Handle simple strings/numbers
+        // Helper function to format odom details
+        function formatOdomMessage(data) {
+            return {
+                angularVelocity: `x: ${data.angular_velocity.x}, y: ${data.angular_velocity.y}, z: ${data.angular_velocity.z}`,
+                linearVelocity: `x: ${data.linear_velocity.x}, y: ${data.linear_velocity.y}, z: ${data.linear_velocity.z}`,
+                orientation: `w: ${data.orientation.w}, x: ${data.orientation.x}, y: ${data.orientation.y}, z: ${data.orientation.z}`,
+                position: `x: ${data.position.x}, y: ${data.position.y}, z: ${data.position.z}`
+            };
         }
 
-        function formatModelStates(data) {
-            // Check if the model states are present and are in an array format
-            if (data && data.length > 0) {
-                return data.map(model => {
-                    const modelName = model.name || "Unknown Model";
-                    const modelPosition = model.pose.position ? `Position: (x: ${model.pose.position.x}, y: ${model.pose.position.y}, z: ${model.pose.position.z})` : "Position: N/A";
-                    const modelOrientation = model.pose.orientation ? `Orientation: (x: ${model.pose.orientation.x}, y: ${model.pose.orientation.y}, z: ${model.pose.orientation.z}, w: ${model.pose.orientation.w})` : "Orientation: N/A";
-                    return `${modelName} - ${modelPosition}, ${modelOrientation}`;
-                }).join('<br>');
-            }
-            return 'No model states available';
-        }
+        // Fetch and display /ros_message
+        function fetchRosMessage() {
+            fetch('http://localhost:5000/ros_message')
+                .then(response => response.json())
+                .then(data => {
+                    // Update latest message
+                    document.getElementById('ros_message-latest').textContent = data.message;
 
-        function fetchMessages() {
-            topics.forEach(topic => {
-                fetch(`http://localhost:5000${topic.name}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (topic.name === '/camera/rgb/image_raw') {
-                            console.log(`Image data received for ${topic.name}:`, data);
-                            document.getElementById(topic.latestId).textContent = "Image data logged in console.";
-                            return;
-                        }
-
-                        // If the topic is /scan, format the ranges array in a readable way
-                        if (topic.name === '/scan') {
-                            const scanData = data.message;
-                            document.getElementById(topic.latestId).textContent = `Ranges: ${scanData.ranges.join(', ')}`;
-
-                            // Update history if applicable
-                            if (topic.historyId) {
-                                const historyList = document.getElementById(topic.historyId);
-                                historyList.innerHTML = '';  // Clear the list
-                                data["message-history"].forEach(msg => {
-                                    const listItem = document.createElement('li');
-                                    listItem.textContent = `Ranges: ${msg.ranges.join(', ')}`;
-                                    historyList.appendChild(listItem);
-                                });
-                            }
-                            return;
-                        }
-
-                        // Special handling for the /gazebo/model_states topic
-                        if (topic.name === '/gazebo/model_states') {
-                            const modelStates = formatModelStates(data.message); // Use the updated format function
-                            document.getElementById(topic.latestId).innerHTML = modelStates;
-
-                            // Update history if applicable
-                            if (topic.historyId) {
-                                const historyList = document.getElementById(topic.historyId);
-                                historyList.innerHTML = ''; // Clear the list
-                                data["message-history"].forEach(msg => {
-                                    const listItem = document.createElement('li');
-                                    listItem.innerHTML = formatModelStates(msg);
-                                    historyList.appendChild(listItem);
-                                });
-                            }
-                            return;
-                        }
-
-                        // Update the latest message for other topics
-                        document.getElementById(topic.latestId).textContent = formatData(data.message);
-
-                        // Update the message history if applicable
-                        if (topic.historyId) {
-                            const historyList = document.getElementById(topic.historyId);
-                            historyList.innerHTML = '';  // Clear the list
-                            data["message-history"].forEach(msg => {
-                                const listItem = document.createElement('li');
-                                listItem.textContent = formatData(msg);
-                                historyList.appendChild(listItem);
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`Error fetching messages for ${topic.name}:`, error);
+                    // Update history
+                    const historyList = document.getElementById('ros_message-history');
+                    historyList.innerHTML = ''; // Clear existing list
+                    data["message-history"].forEach(msg => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = msg;
+                        historyList.appendChild(listItem);
                     });
-            });
+                })
+                .catch(error => {
+                    console.error('Error fetching /ros_message:', error);
+                    document.getElementById('ros_message-latest').textContent = 'Error loading data';
+                    document.getElementById('ros_message-history').innerHTML = '<li class="error">Error loading history</li>';
+                });
         }
 
-        // Fetch messages every second
-        setInterval(fetchMessages, 1000);
-    </script>    
+        // Fetch and display /odom
+        function fetchOdom() {
+            fetch('http://localhost:5000/odom')
+                .then(response => response.json())
+                .then(data => {
+                    // Format odom message details
+                    const formatted = formatOdomMessage(data.message);
+
+                    // Update latest values with a single bullet point
+                    const latestSection = document.getElementById('odom-latest');
+                    latestSection.innerHTML = `
+                        <li>
+                            Angular Velocity: ${formatted.angularVelocity}<br>
+                            Linear Velocity: ${formatted.linearVelocity}<br>
+                            Orientation: ${formatted.orientation}<br>
+                            Position: ${formatted.position}
+                        </li>
+                    `;
+
+                    // Update history
+                    const historyList = document.getElementById('odom-history');
+                    historyList.innerHTML = ''; // Clear existing list
+                    data["message-history"].forEach(msg => {
+                        const historyItem = document.createElement('li');
+                        historyItem.innerHTML = `
+                            Angular Velocity: x: ${msg.angular_velocity.x}, y: ${msg.angular_velocity.y}, z: ${msg.angular_velocity.z}<br>
+                            Linear Velocity: x: ${msg.linear_velocity.x}, y: ${msg.linear_velocity.y}, z: ${msg.linear_velocity.z}<br>
+                            Orientation: w: ${msg.orientation.w}, x: ${msg.orientation.x}, y: ${msg.orientation.y}, z: ${msg.orientation.z}<br>
+                            Position: x: ${msg.position.x}, y: ${msg.position.y}, z: ${msg.position.z}
+                        `;
+                        historyList.appendChild(historyItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching /odom:', error);
+                    document.getElementById('odom-latest').innerHTML = '<li>Error loading data</li>';
+                    document.getElementById('odom-history').innerHTML = '<li class="error">Error loading history</li>';
+                });
+        }
+
+
+        // Periodic updates for /ros_message and /odom
+        setInterval(fetchRosMessage, 1000);
+        setInterval(fetchOdom, 1000);
+    </script>
 </body>
 </html>
