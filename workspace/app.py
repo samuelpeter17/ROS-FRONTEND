@@ -56,15 +56,6 @@ def get_ros_message():
     latest_message = message_history['/ros_message'][-1] if message_history['/ros_message'] else "No messages yet."
     return jsonify({"message": latest_message, "message-history": message_history['/ros_message']})
 
-@app.route('/publish_message', methods=['POST'])
-def publish_ros_message():
-    # Publish a new message to the /ros_message topic
-    pub = rospy.Publisher('/ros_message', String, queue_size=10)
-    msg = String()
-    msg.data = "Hello from Flask to ROS!"
-    pub.publish(msg)
-    return jsonify({"status": "Message published to ROS"})
-
 if __name__ == '__main__':
     # Run the Flask app
     app.run(host='0.0.0.0', port=5000)  # Make Flask accessible externally
