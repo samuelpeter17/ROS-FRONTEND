@@ -105,6 +105,20 @@ def get_odom_message():
 # -----------------------------------
 # /camera/rgb/image_raw Topic Functionality
 # -----------------------------------
+# def image_callback(msg):
+#     # Store the complete raw message as a dictionary
+#     message_history['/camera/rgb/image_raw'].append({
+#         "header": {"seq": msg.header.seq, "stamp": str(msg.header.stamp), "frame_id": msg.header.frame_id},
+#         "height": msg.height,
+#         "width": msg.width,
+#         "encoding": msg.encoding,
+#         "is_bigendian": msg.is_bigendian,
+#         "step": msg.step,
+#         "data": list(msg.data)  # This is the complete raw image data
+#     })
+#     if len(message_history['/camera/rgb/image_raw']) > 10:
+#         message_history['/camera/rgb/image_raw'].pop(0)
+
 def image_callback(msg):
     # Simplified representation of image data (actual image processing not included)
     image_data = {"height": msg.height, "width": msg.width, "encoding": msg.encoding}
@@ -122,6 +136,23 @@ def get_image_message():
 # -----------------------------------
 # /scan Topic Functionality
 # -----------------------------------
+# def scan_callback(msg):
+#     # Store the complete raw message as a dictionary
+#     scan_data = {
+#         "angle_min": msg.angle_min,
+#         "angle_max": msg.angle_max,
+#         "angle_increment": msg.angle_increment,
+#         "time_increment": msg.time_increment,
+#         "scan_time": msg.scan_time,
+#         "range_min": msg.range_min,
+#         "range_max": msg.range_max,
+#         "ranges": list(msg.ranges),         # Full range data
+#         "intensities": list(msg.intensities)  # Full intensity data
+#     }
+#     message_history['/scan'].append(scan_data)
+#     if len(message_history['/scan']) > 10:
+#         message_history['/scan'].pop(0)
+
 def scan_callback(msg):
     scan_data = {"ranges": msg.ranges[:10], "intensities": msg.intensities[:10]}  # Send a slice for brevity
     message_history['/scan'].append(scan_data)
