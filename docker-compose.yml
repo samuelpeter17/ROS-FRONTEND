@@ -1,54 +1,46 @@
-# docker-compose.yml
 version: '3'
 services:
   ros:
-    build: .
-    ports:
-      - "5000:5000"  # Flask API port
-      - "11311:11311"  # ROS master port
-      - "11345:11345"  # Gazebo master port
-      - "5900:5900"  # VNC port
+    build: .  # Assuming you have a Dockerfile for the ROS setup
+    command: /root/start_ros_flask.sh  # Run the script to start roscore and Flask app
+    volumes:
+      - ./workspace:/root/catkin_ws/  # Bind mount your workspace
+    environment:
+      - DISPLAY=novnc:0.0  # Display for the frontend (x11)
+    env_file:
+      - ros.env
     networks:
       - my-net
-    environment:
-      - DISPLAY=:99
-      - RESOLUTION=1280x720
-    volumes:
-      - ./workspace:/root/catkin_ws/src
-      - /tmp/.X11-unix:/tmp/.X11-unix  # Share X11 socket
+    ports:
+      - "5000:5000"  # Expose Flask API port
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/publish_message"]
       interval: 30s
       retries: 3
-      start_period: 30s
+      start_period: 30s  # Give extra time for Flask to initialize
       timeout: 10s
-    env_file:
-      - ros.env
 
   frontend:
-    build: ./frontend
+    build: ./frontend  # Path to the Dockerfile for the frontend (adjust if needed)
     ports:
-      - "5001:80"
+      - "5001:80"  # Expose frontend port 80 on host port 5001
     networks:
-      - my-net
+      - my-net  # Ensure both frontend and ros are on the same network
     depends_on:
-      - ros
+      - ros  # Wait for ROS service to be ready
+    command: nginx -g 'daemon off;'  # Start nginx for the frontend
 
   novnc:
     image: theasp/novnc:latest
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Expose noVNC port
     networks:
       - my-net
-    environment:
-      - DISPLAY_WIDTH=1280
-      - DISPLAY_HEIGHT=720
-      - DISPLAY=:99
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix  # Share X11 socket
     depends_on:
       - ros
+    env_file:
+      - novnc.env
 
 networks:
-  my-net:
+  my-net:  # Create a new network for ROS and frontend communication
     driver: bridge

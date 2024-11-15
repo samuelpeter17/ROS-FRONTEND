@@ -1,8 +1,7 @@
-# Dockerfile
 FROM osrf/ros:melodic-desktop-full
 
-# Install necessary dependencies
-RUN apt-get update && apt-get install -y \
+# Install necessary dependencies and ROS packages
+RUN apt-get -y update && apt-get install -y \
     curl \
     iputils-ping \
     net-tools \
@@ -12,12 +11,6 @@ RUN apt-get update && apt-get install -y \
     nano \
     vim \
     htop \
-    python3-pip \
-    python3-dev \
-    x11vnc \
-    xvfb \
-    websockify \
-    novnc \
     ros-melodic-joy \
     ros-melodic-teleop-twist-joy \
     ros-melodic-teleop-twist-keyboard \
@@ -39,43 +32,45 @@ RUN apt-get update && apt-get install -y \
     ros-melodic-gmapping \
     ros-melodic-navigation \
     ros-melodic-interactive-markers \
+    python3-pip \
+    python3-dev \
     ros-melodic-turtlebot3-gazebo \
     ros-melodic-rosbridge-server \
     ros-melodic-web-video-server \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y \
-    x11vnc \
-    xvfb \
-    mesa-utils \
-    xorg \
-    openbox \
-    libgl1-mesa-glx \
-    libgl1-mesa-dri \
-    && rm -rf /var/lib/apt/lists/*  
-      
-# Install Python packages using pip
+# Install Python dependencies
 RUN pip3 install \
     flask \
     flask-restful \
     pyyaml \
     rospkg
 
-# Create catkin workspace
+# Create the ROS workspace
+RUN mkdir -p /root/catkin_ws/src
+
+# Set the working directory to catkin_ws
 WORKDIR /root/catkin_ws
 
-# Copy your ROS package source code
-COPY src/your_ros_package /root/catkin_ws/src
+# Set up the ROS environment
+RUN /bin/bash -c "source /opt/ros/melodic/setup.bash"
 
-# Build the workspace
+# Copy the source code into the workspace (if applicable)
+#COPY src/ /root/catkin_ws/src/
+
+# Copy the app.py file from the project root into the container's /root/catkin_ws
+#COPY app.py /root/catkin_ws/app.py
+
+# Build the ROS workspace
 RUN /bin/bash -c "source /opt/ros/melodic/setup.bash && catkin_make"
 
-# Copy the Flask app and start script
-COPY app.py /root/catkin_ws/app.py
-COPY start_ros_flask.sh /root/start_ros_flask.sh
+# Set up ROS environment so it's sourced on every new shell session
+RUN echo "source /opt/ros/melodic/setup.bash" >> /root/.bashrc
+RUN echo "source /root/catkin_ws/devel/setup.bash" >> /root/.bashrc
 
-# Make the start script executable
+# Copy the start_ros_flask.sh script and make it executable
+COPY start_ros_flask.sh /root/start_ros_flask.sh
 RUN chmod +x /root/start_ros_flask.sh
 
-# Command to run the start script
+# Set the default command to execute the start script
 CMD ["/root/start_ros_flask.sh"]
