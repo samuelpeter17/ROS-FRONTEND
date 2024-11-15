@@ -6,36 +6,151 @@
     <title>ROS Message Display</title>
 </head>
 <body>
-    <h1>Latest ROS Message:</h1>
-    <p id="latest-message">Loading...</p>
+    <h1>ROS Topics Display</h1>
 
-    <h2>Message History:</h2>
-    <ul id="message-history"></ul>
+    <div>
+        <h2>/ros_message</h2>
+        <p><strong>Latest:</strong> <span id="ros_message-latest">Loading...</span></p>
+        <h3>History:</h3>
+        <ul id="ros_message-history"></ul>
+    </div>
+
+    <div>
+        <h2>/odom</h2>
+        <p><strong>Latest:</strong> <span id="odom-latest">Loading...</span></p>
+        <h3>History:</h3>
+        <ul id="odom-history"></ul>
+    </div>
+
+    <div>
+        <h2>/camera/rgb/image_raw</h2>
+        <p id="camera-info">Receiving raw image data. See console for details.</p>
+    </div>
+
+    <div>
+        <h2>/scan</h2>
+        <p><strong>Latest:</strong> <span id="scan-latest">Loading...</span></p>
+        <h3>History:</h3>
+        <ul id="scan-history"></ul>
+    </div>
+
+    <div>
+        <h2>/gazebo/model_states</h2>
+        <p><strong>Latest:</strong> <span id="model_states-latest">Loading...</span></p>
+        <h3>History:</h3>
+        <ul id="model_states-history"></ul>
+    </div>
+
+    <div>
+        <h2>/clock</h2>
+        <p><strong>Latest:</strong> <span id="clock-latest">Loading...</span></p>
+        <h3>History:</h3>
+        <ul id="clock-history"></ul>
+    </div>
 
     <script>
-        function fetchMessages() {
-            fetch('http://localhost:5000/ros_message')
-                .then(response => response.json())
-                .then(data => {
-                    // Update the latest message
-                    document.getElementById('latest-message').textContent = data.message;
+        const topics = [
+            { name: '/ros_message', latestId: 'ros_message-latest', historyId: 'ros_message-history' },
+            { name: '/odom', latestId: 'odom-latest', historyId: 'odom-history' },
+            { name: '/camera/rgb/image_raw', latestId: 'camera-info', historyId: null }, // Special handling for image data
+            { name: '/scan', latestId: 'scan-latest', historyId: 'scan-history' },
+            { name: '/gazebo/model_states', latestId: 'model_states-latest', historyId: 'model_states-history' },
+            { name: '/clock', latestId: 'clock-latest', historyId: 'clock-history' },
+        ];
 
-                    // Update the message history
-                    const historyList = document.getElementById('message-history');
-                    historyList.innerHTML = '';  // Clear the list
-                    data["message-history"].forEach(msg => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = msg;
-                        historyList.appendChild(listItem);
+        function formatData(data) {
+            if (Array.isArray(data)) {
+                // If data is an array (like ranges), join values with commas for easier readability
+                return data.join(', ');
+            } else if (typeof data === 'object') {
+                // Pretty-print JSON data if it's an object (like a complex object)
+                return JSON.stringify(data, null, 2);
+            }
+            return data; // Handle simple strings/numbers
+        }
+
+        function formatModelStates(data) {
+            // Check if the model states are present and are in an array format
+            if (data && data.length > 0) {
+                return data.map(model => {
+                    const modelName = model.name || "Unknown Model";
+                    const modelPosition = model.pose.position ? `Position: (x: ${model.pose.position.x}, y: ${model.pose.position.y}, z: ${model.pose.position.z})` : "Position: N/A";
+                    const modelOrientation = model.pose.orientation ? `Orientation: (x: ${model.pose.orientation.x}, y: ${model.pose.orientation.y}, z: ${model.pose.orientation.z}, w: ${model.pose.orientation.w})` : "Orientation: N/A";
+                    return `${modelName} - ${modelPosition}, ${modelOrientation}`;
+                }).join('<br>');
+            }
+            return 'No model states available';
+        }
+
+        function fetchMessages() {
+            topics.forEach(topic => {
+                fetch(`http://localhost:5000${topic.name}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (topic.name === '/camera/rgb/image_raw') {
+                            console.log(`Image data received for ${topic.name}:`, data);
+                            document.getElementById(topic.latestId).textContent = "Image data logged in console.";
+                            return;
+                        }
+
+                        // If the topic is /scan, format the ranges array in a readable way
+                        if (topic.name === '/scan') {
+                            const scanData = data.message;
+                            document.getElementById(topic.latestId).textContent = `Ranges: ${scanData.ranges.join(', ')}`;
+
+                            // Update history if applicable
+                            if (topic.historyId) {
+                                const historyList = document.getElementById(topic.historyId);
+                                historyList.innerHTML = '';  // Clear the list
+                                data["message-history"].forEach(msg => {
+                                    const listItem = document.createElement('li');
+                                    listItem.textContent = `Ranges: ${msg.ranges.join(', ')}`;
+                                    historyList.appendChild(listItem);
+                                });
+                            }
+                            return;
+                        }
+
+                        // Special handling for the /gazebo/model_states topic
+                        if (topic.name === '/gazebo/model_states') {
+                            const modelStates = formatModelStates(data.message); // Use the updated format function
+                            document.getElementById(topic.latestId).innerHTML = modelStates;
+
+                            // Update history if applicable
+                            if (topic.historyId) {
+                                const historyList = document.getElementById(topic.historyId);
+                                historyList.innerHTML = ''; // Clear the list
+                                data["message-history"].forEach(msg => {
+                                    const listItem = document.createElement('li');
+                                    listItem.innerHTML = formatModelStates(msg);
+                                    historyList.appendChild(listItem);
+                                });
+                            }
+                            return;
+                        }
+
+                        // Update the latest message for other topics
+                        document.getElementById(topic.latestId).textContent = formatData(data.message);
+
+                        // Update the message history if applicable
+                        if (topic.historyId) {
+                            const historyList = document.getElementById(topic.historyId);
+                            historyList.innerHTML = '';  // Clear the list
+                            data["message-history"].forEach(msg => {
+                                const listItem = document.createElement('li');
+                                listItem.textContent = formatData(msg);
+                                historyList.appendChild(listItem);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Error fetching messages for ${topic.name}:`, error);
                     });
-                })
-                .catch(error => {
-                    console.error('Error fetching messages:', error);
-                });
+            });
         }
 
         // Fetch messages every second
         setInterval(fetchMessages, 1000);
-    </script>
+    </script>    
 </body>
 </html>

@@ -78,20 +78,31 @@ def get_ros_message():
 # /odom Topic Functionality
 # -----------------------------------
 def odom_callback(msg):
-    odom_data = {
-        'position': {
-            'x': msg.pose.pose.position.x,
-            'y': msg.pose.pose.position.y,
-            'z': msg.pose.pose.position.z
+    # Convert structured ROS message to JSON
+    data = {
+        "position": {
+            "x": msg.pose.pose.position.x,
+            "y": msg.pose.pose.position.y,
+            "z": msg.pose.pose.position.z,
         },
-        'orientation': {
-            'x': msg.pose.pose.orientation.x,
-            'y': msg.pose.pose.orientation.y,
-            'z': msg.pose.pose.orientation.z,
-            'w': msg.pose.pose.orientation.w
-        }
+        "orientation": {
+            "x": msg.pose.pose.orientation.x,
+            "y": msg.pose.pose.orientation.y,
+            "z": msg.pose.pose.orientation.z,
+            "w": msg.pose.pose.orientation.w,
+        },
+        "linear_velocity": {
+            "x": msg.twist.twist.linear.x,
+            "y": msg.twist.twist.linear.y,
+            "z": msg.twist.twist.linear.z,
+        },
+        "angular_velocity": {
+            "x": msg.twist.twist.angular.x,
+            "y": msg.twist.twist.angular.y,
+            "z": msg.twist.twist.angular.z,
+        },
     }
-    message_history['/odom'].append(odom_data)
+    message_history['/odom'].append(data)
     if len(message_history['/odom']) > 10:
         message_history['/odom'].pop(0)
 
@@ -154,8 +165,13 @@ def get_image_message():
 #         message_history['/scan'].pop(0)
 
 def scan_callback(msg):
-    scan_data = {"ranges": msg.ranges[:10], "intensities": msg.intensities[:10]}  # Send a slice for brevity
-    message_history['/scan'].append(scan_data)
+    # Only keep a subset of ranges to avoid overwhelming data
+    data = {
+        "ranges": list(msg.ranges[:10]),  # First 10 range readings
+        "angle_min": msg.angle_min,
+        "angle_max": msg.angle_max,
+    }
+    message_history['/scan'].append(data)
     if len(message_history['/scan']) > 10:
         message_history['/scan'].pop(0)
 
@@ -170,9 +186,8 @@ def get_scan_message():
 # /gazebo/model_states Topic Functionality
 # -----------------------------------
 def model_states_callback(msg):
-    models = [{"name": name, "position": {"x": pose.position.x, "y": pose.position.y, "z": pose.position.z}} 
-              for name, pose in zip(msg.name, msg.pose)]
-    message_history['/gazebo/model_states'].append(models)
+    data = [{"name": name, "position": {"x": pose.position.x, "y": pose.position.y, "z": pose.position.z}} for name, pose in zip(msg.name, msg.pose)]
+    message_history['/gazebo/model_states'].append(data)
     if len(message_history['/gazebo/model_states']) > 10:
         message_history['/gazebo/model_states'].pop(0)
 
@@ -187,8 +202,8 @@ def get_model_states_message():
 # /clock Topic Functionality
 # -----------------------------------
 def clock_callback(msg):
-    clock_data = {"secs": msg.clock.secs, "nsecs": msg.clock.nsecs}
-    message_history['/clock'].append(clock_data)
+    data = {"secs": msg.clock.secs, "nsecs": msg.clock.nsecs}
+    message_history['/clock'].append(data)
     if len(message_history['/clock']) > 10:
         message_history['/clock'].pop(0)
 
