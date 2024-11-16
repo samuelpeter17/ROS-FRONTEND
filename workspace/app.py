@@ -186,11 +186,41 @@ def get_scan_message():
 # /gazebo/model_states Topic Functionality
 # -----------------------------------
 def model_states_callback(msg):
-    data = [{"name": name, "position": {"x": pose.position.x, "y": pose.position.y, "z": pose.position.z}} for name, pose in zip(msg.name, msg.pose)]
+    data = []
+    for name, pose, twist in zip(msg.name, msg.pose, msg.twist):
+        # Only append velocities if they are non-zero or valid
+        linear_velocity = {
+            "x": twist.linear.x if twist.linear.x != 0 else None,
+            "y": twist.linear.y if twist.linear.y != 0 else None,
+            "z": twist.linear.z if twist.linear.z != 0 else None
+        }
+        
+        angular_velocity = {
+            "x": twist.angular.x if twist.angular.x != 0 else None,
+            "y": twist.angular.y if twist.angular.y != 0 else None,
+            "z": twist.angular.z if twist.angular.z != 0 else None
+        }
+        
+        # Add the model's data
+        data.append({
+            "name": name,
+            "position": {
+                "x": pose.position.x,
+                "y": pose.position.y,
+                "z": pose.position.z
+            },
+            "linear_velocity": linear_velocity,
+            "angular_velocity": angular_velocity
+        })
+    
+    # Save the message to history
     message_history['/gazebo/model_states'].append(data)
+    
+    # Maintain history limit
     if len(message_history['/gazebo/model_states']) > 10:
         message_history['/gazebo/model_states'].pop(0)
 
+# Subscriber for /gazebo/model_states topic
 rospy.Subscriber('/gazebo/model_states', ModelStates, model_states_callback)
 
 @app.route('/gazebo/model_states', methods=['GET'])

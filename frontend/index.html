@@ -51,6 +51,18 @@
         <ul id="odom-history"></ul>
     </div>
 
+    <!-- /gazebo/model_states Section -->
+    <div id="gazebo-model-states-section" class="topic">
+        <h2>/gazebo/model_states</h2>
+        <p><strong>Latest:</strong></p>
+        <ul id="gazebo-model-states-latest">
+            <li>Loading...</li>
+        </ul>
+        <h3>History:</h3>
+        <ul id="gazebo-model-states-history"></ul>
+    </div>
+
+
     <script>
         // Helper function to format odom details
         function formatOdomMessage(data) {
@@ -70,14 +82,14 @@
                     // Update latest message
                     document.getElementById('ros_message-latest').textContent = data.message;
 
-                    // Update history
-                    const historyList = document.getElementById('ros_message-history');
-                    historyList.innerHTML = ''; // Clear existing list
-                    data["message-history"].forEach(msg => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = msg;
-                        historyList.appendChild(listItem);
-                    });
+                    // // Update history
+                    // const historyList = document.getElementById('ros_message-history');
+                    // historyList.innerHTML = ''; // Clear existing list
+                    // data["message-history"].forEach(msg => {
+                    //     const listItem = document.createElement('li');
+                    //     listItem.textContent = msg;
+                    //     historyList.appendChild(listItem);
+                    // });
                 })
                 .catch(error => {
                     console.error('Error fetching /ros_message:', error);
@@ -98,26 +110,26 @@
                     const latestSection = document.getElementById('odom-latest');
                     latestSection.innerHTML = `
                         <li>
-                            Angular Velocity: ${formatted.angularVelocity}<br>
-                            Linear Velocity: ${formatted.linearVelocity}<br>
+                            Position: ${formatted.position}<br>
                             Orientation: ${formatted.orientation}<br>
-                            Position: ${formatted.position}
+                            Linear Velocity: ${formatted.linearVelocity}<br>
+                            Angular Velocity: ${formatted.angularVelocity}
                         </li>
                     `;
 
-                    // Update history
-                    const historyList = document.getElementById('odom-history');
-                    historyList.innerHTML = ''; // Clear existing list
-                    data["message-history"].forEach(msg => {
-                        const historyItem = document.createElement('li');
-                        historyItem.innerHTML = `
-                            Angular Velocity: x: ${msg.angular_velocity.x}, y: ${msg.angular_velocity.y}, z: ${msg.angular_velocity.z}<br>
-                            Linear Velocity: x: ${msg.linear_velocity.x}, y: ${msg.linear_velocity.y}, z: ${msg.linear_velocity.z}<br>
-                            Orientation: w: ${msg.orientation.w}, x: ${msg.orientation.x}, y: ${msg.orientation.y}, z: ${msg.orientation.z}<br>
-                            Position: x: ${msg.position.x}, y: ${msg.position.y}, z: ${msg.position.z}
-                        `;
-                        historyList.appendChild(historyItem);
-                    });
+                    // // Update history
+                    // const historyList = document.getElementById('odom-history');
+                    // historyList.innerHTML = ''; // Clear existing list
+                    // data["message-history"].forEach(msg => {
+                    //     const historyItem = document.createElement('li');
+                    //     historyItem.innerHTML = `
+                    //         Angular Velocity: x: ${msg.angular_velocity.x}, y: ${msg.angular_velocity.y}, z: ${msg.angular_velocity.z}<br>
+                    //         Linear Velocity: x: ${msg.linear_velocity.x}, y: ${msg.linear_velocity.y}, z: ${msg.linear_velocity.z}<br>
+                    //         Orientation: w: ${msg.orientation.w}, x: ${msg.orientation.x}, y: ${msg.orientation.y}, z: ${msg.orientation.z}<br>
+                    //         Position: x: ${msg.position.x}, y: ${msg.position.y}, z: ${msg.position.z}
+                    //     `;
+                    //     historyList.appendChild(historyItem);
+                    // });
                 })
                 .catch(error => {
                     console.error('Error fetching /odom:', error);
@@ -126,10 +138,54 @@
                 });
         }
 
+        // Fetch and display /gazebo/model_states
+        function fetchGazeboModelStates() {
+            fetch('http://localhost:5000/gazebo/model_states')
+                .then(response => response.json())
+                .then(data => {
+                    // Aggregate all model data into one bullet point
+                    const formattedLatest = formatGazeboModelStates(data.message);
+                    document.getElementById('gazebo-model-states-latest').innerHTML = formattedLatest;
+
+                    // // Update history
+                    // const historyList = document.getElementById('gazebo-model-states-history');
+                    // historyList.innerHTML = ''; // Clear existing list
+                    // data["message-history"].forEach(msg => {
+                    //     const historyItem = document.createElement('li');
+                    //     historyItem.innerHTML = formatGazeboModelStates(msg);
+                    //     historyList.appendChild(historyItem);
+                    // });
+                })
+                .catch(error => {
+                    console.error('Error fetching /gazebo/model_states:', error);
+                    document.getElementById('gazebo-model-states-latest').innerHTML = 'Error loading data';
+                    document.getElementById('gazebo-model-states-history').innerHTML = '<li class="error">Error loading history</li>';
+                });
+        }
+
+        // Helper function to format gazebo model states into one bullet point
+        function formatGazeboModelStates(models) {
+            // Format all model data into a single bullet point string
+            let modelDetails = models.map(model => {
+                return `${model.name}<br>
+                        Position: x: ${model.position.x}, y: ${model.position.y}, z: ${model.position.z}<br>
+                        Linear Velocity: x: ${model.linear_velocity.x !== null ? model.linear_velocity.x : 'null'}, 
+                        y: ${model.linear_velocity.y !== null ? model.linear_velocity.y : 'null'}, 
+                        z: ${model.linear_velocity.z !== null ? model.linear_velocity.z : 'null'}<br>
+                        Angular Velocity: x: ${model.angular_velocity.x !== null ? model.angular_velocity.x : 'null'}, 
+                        y: ${model.angular_velocity.y !== null ? model.angular_velocity.y : 'null'}, 
+                        z: ${model.angular_velocity.z !== null ? model.angular_velocity.z : 'null'}<br><br>`;
+            }).join('');
+
+            // Join all models' details into a single string, representing a single bullet point
+            return `<li>${modelDetails}</li>`;
+        }
+
 
         // Periodic updates for /ros_message and /odom
         setInterval(fetchRosMessage, 1000);
         setInterval(fetchOdom, 1000);
+        setInterval(fetchGazeboModelStates, 1000);
     </script>
 </body>
 </html>
