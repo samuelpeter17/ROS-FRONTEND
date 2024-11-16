@@ -24,6 +24,45 @@
         .error {
             color: red;
         }
+        /* Slider styling */
+        .slider-container {
+            margin: 30px 0;
+            text-align: center;
+        }
+        .slider-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%; /* Make the slider wider */
+            max-width: 500px;
+        }
+        .slider-label {
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .slider {
+            width: 95%;
+            height: 25px; /* Increase height for better visibility */
+        }
+        .slider-lines {
+            position: absolute;
+            top: 25px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        .slider-lines span {
+            color: black;
+            width: 10%; /* Adjust width for proportional spacing */
+            text-align: center;
+        }
+        .slider-value {
+            font-size: 18px;
+            color: red;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -33,8 +72,6 @@
     <div id="ros-message-section" class="topic">
         <h2>/ros_message</h2>
         <p><strong>Latest:</strong> <span id="ros_message-latest">Loading...</span></p>
-        <h3>History:</h3>
-        <ul id="ros_message-history"></ul>
     </div>
 
     <!-- /odom Section -->
@@ -47,8 +84,6 @@
             <li id="odom-orientation">Orientation: Loading...</li>
             <li id="odom-position">Position: Loading...</li>
         </ul>
-        <h3>History:</h3>
-        <ul id="odom-history"></ul>
     </div>
 
     <!-- /gazebo/model_states Section -->
@@ -58,16 +93,12 @@
         <ul id="gazebo-model-states-latest">
             <li>Loading...</li>
         </ul>
-        <h3>History:</h3>
-        <ul id="gazebo-model-states-history"></ul>
     </div>
 
     <!-- /clock Section -->
     <div id="clock-section" class="topic">
         <h2>/clock</h2>
         <p><strong>Latest:</strong> <span id="clock-latest">Loading...</span></p>
-        <h3>History:</h3>
-        <ul id="clock-history"></ul>
     </div>
 
     <!-- /scan Section -->
@@ -77,12 +108,40 @@
     </div>
 
     <!-- /camera/rgb/image Section -->
-    <div id="camera-feed" class = "topic">
+    <div id="camera-feed" class="topic">
         <h2>/camera/rgb/image_raw</h2>
         <img id="camera-image" src="" alt="Camera Feed" style="width: 100%; max-width: 640px; height: auto;">
         <p id="camera-status">Loading camera feed...</p>
     </div>
-    
+
+    <!-- Robot Control Sliders -->
+    <h2>Robot Control</h2>
+    <!-- Forward/Backward Velocity (Linear Velocity) -->
+    <div class="slider-container">
+        <div class="slider-label">Forward/Backward Velocity</div>
+        <div class="slider-wrapper">
+            <input type="range" id="forward-backward-slider" class="slider" min="-1" max="1" step="0.2" value="0">
+            <div class="slider-lines">
+                <span>-1.0</span><span>-0.8</span><span>-0.6</span><span>-0.4</span><span>-0.2</span>
+                <span>0.0</span><span>+0.2</span><span>+0.4</span><span>+0.6</span><span>+0.8</span><span>+1.0</span>
+            </div>
+        </div>
+        <div id="forward-backward-velocity" class="slider-value">0.0</div>
+    </div>
+
+    <!-- Left/Right Velocity (Angular Velocity) -->
+    <div class="slider-container">
+        <div class="slider-label">Left/Right Velocity</div>
+        <div class="slider-wrapper">
+            <input type="range" id="left-right-slider" class="slider" min="-1" max="1" step="0.2" value="0">
+            <div class="slider-lines">
+                <span>-1.0</span><span>-0.8</span><span>-0.6</span><span>-0.4</span><span>-0.2</span>
+                <span>0.0</span><span>+0.2</span><span>+0.4</span><span>+0.6</span><span>+0.8</span><span>+1.0</span>
+            </div>
+        </div>
+        <div id="left-right-velocity" class="slider-value">0.0</div>
+    </div>
+
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
         // Helper function to format odom details
@@ -102,20 +161,10 @@
                 .then(data => {
                     // Update latest message
                     document.getElementById('ros_message-latest').textContent = data.message;
-
-                    // // Update history
-                    // const historyList = document.getElementById('ros_message-history');
-                    // historyList.innerHTML = ''; // Clear existing list
-                    // data["message-history"].forEach(msg => {
-                    //     const listItem = document.createElement('li');
-                    //     listItem.textContent = msg;
-                    //     historyList.appendChild(listItem);
-                    // });
                 })
                 .catch(error => {
                     console.error('Error fetching /ros_message:', error);
                     document.getElementById('ros_message-latest').textContent = 'Error loading data';
-                    document.getElementById('ros_message-history').innerHTML = '<li class="error">Error loading history</li>';
                 });
         }
 
@@ -137,25 +186,10 @@
                             Angular Velocity: ${formatted.angularVelocity}
                         </li>
                     `;
-
-                    // // Update history
-                    // const historyList = document.getElementById('odom-history');
-                    // historyList.innerHTML = ''; // Clear existing list
-                    // data["message-history"].forEach(msg => {
-                    //     const historyItem = document.createElement('li');
-                    //     historyItem.innerHTML = `
-                    //         Angular Velocity: x: ${msg.angular_velocity.x}, y: ${msg.angular_velocity.y}, z: ${msg.angular_velocity.z}<br>
-                    //         Linear Velocity: x: ${msg.linear_velocity.x}, y: ${msg.linear_velocity.y}, z: ${msg.linear_velocity.z}<br>
-                    //         Orientation: w: ${msg.orientation.w}, x: ${msg.orientation.x}, y: ${msg.orientation.y}, z: ${msg.orientation.z}<br>
-                    //         Position: x: ${msg.position.x}, y: ${msg.position.y}, z: ${msg.position.z}
-                    //     `;
-                    //     historyList.appendChild(historyItem);
-                    // });
                 })
                 .catch(error => {
                     console.error('Error fetching /odom:', error);
                     document.getElementById('odom-latest').innerHTML = '<li>Error loading data</li>';
-                    document.getElementById('odom-history').innerHTML = '<li class="error">Error loading history</li>';
                 });
         }
 
@@ -164,41 +198,23 @@
             fetch('http://localhost:5000/gazebo/model_states')
                 .then(response => response.json())
                 .then(data => {
-                    // Aggregate all model data into one bullet point
                     const formattedLatest = formatGazeboModelStates(data.message);
                     document.getElementById('gazebo-model-states-latest').innerHTML = formattedLatest;
-
-                    // // Update history
-                    // const historyList = document.getElementById('gazebo-model-states-history');
-                    // historyList.innerHTML = ''; // Clear existing list
-                    // data["message-history"].forEach(msg => {
-                    //     const historyItem = document.createElement('li');
-                    //     historyItem.innerHTML = formatGazeboModelStates(msg);
-                    //     historyList.appendChild(historyItem);
-                    // });
                 })
                 .catch(error => {
                     console.error('Error fetching /gazebo/model_states:', error);
                     document.getElementById('gazebo-model-states-latest').innerHTML = 'Error loading data';
-                    document.getElementById('gazebo-model-states-history').innerHTML = '<li class="error">Error loading history</li>';
                 });
         }
 
         // Helper function to format gazebo model states into one bullet point
         function formatGazeboModelStates(models) {
-            // Format all model data into a single bullet point string
             let modelDetails = models.map(model => {
                 return `${model.name}<br>
                         Position: x: ${model.position.x}, y: ${model.position.y}, z: ${model.position.z}<br>
-                        Linear Velocity: x: ${model.linear_velocity.x !== null ? model.linear_velocity.x : 'null'}, 
-                        y: ${model.linear_velocity.y !== null ? model.linear_velocity.y : 'null'}, 
-                        z: ${model.linear_velocity.z !== null ? model.linear_velocity.z : 'null'}<br>
-                        Angular Velocity: x: ${model.angular_velocity.x !== null ? model.angular_velocity.x : 'null'}, 
-                        y: ${model.angular_velocity.y !== null ? model.angular_velocity.y : 'null'}, 
-                        z: ${model.angular_velocity.z !== null ? model.angular_velocity.z : 'null'}<br><br>`;
+                        Linear Velocity: x: ${model.linear_velocity.x}, y: ${model.linear_velocity.y}, z: ${model.linear_velocity.z}<br>
+                        Angular Velocity: x: ${model.angular_velocity.x}, y: ${model.angular_velocity.y}, z: ${model.angular_velocity.z}<br><br>`;
             }).join('');
-
-            // Join all models' details into a single string, representing a single bullet point
             return `<li>${modelDetails}</li>`;
         }
 
@@ -207,33 +223,21 @@
             fetch('http://localhost:5000/clock')
                 .then(response => response.json())
                 .then(data => {
-                    // Format the latest clock message
                     const latestMessage = data.message ? 
                         `Secs: ${data.message.secs}, Nsecs: ${data.message.nsecs}` : 
                         'No messages yet.';
                     document.getElementById('clock-latest').textContent = latestMessage;
-
-                    // // Update history
-                    // const historyList = document.getElementById('clock-history');
-                    // historyList.innerHTML = ''; // Clear existing list
-                    // data["message-history"].forEach(msg => {
-                    //     const listItem = document.createElement('li');
-                    //     listItem.textContent = `Secs: ${msg.secs}, Nsecs: ${msg.nsecs}`;
-                    //     historyList.appendChild(listItem);
-                    // });
                 })
                 .catch(error => {
                     console.error('Error fetching /clock:', error);
                     document.getElementById('clock-latest').textContent = 'Error loading data';
-                    document.getElementById('clock-history').innerHTML = '<li class="error">Error loading history</li>';
                 });
         }
 
-        // Function to fetch the scan data and render the visualization
+        // Fetch the scan data and render the visualization
         async function fetchScanImage() {
             const response = await fetch('http://localhost:5000/scan-image');
             if (response.ok) {
-                // Set the image source to the received image URL
                 document.getElementById('scan-image').src = URL.createObjectURL(await response.blob());
             } else {
                 console.error("Error fetching scan image");
@@ -246,15 +250,10 @@
             const statusElement = document.getElementById('camera-status');
 
             fetch('http://localhost:5000/camera/rgb/image_raw')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.blob(); // Convert response to a blob
-                })
+                .then(response => response.blob())
                 .then(blob => {
-                    const imageUrl = URL.createObjectURL(blob); // Create URL for the image
-                    imageElement.src = imageUrl; // Set image src to the generated URL
+                    const imageUrl = URL.createObjectURL(blob);
+                    imageElement.src = imageUrl;
                     statusElement.textContent = 'Camera feed updated.';
                 })
                 .catch(error => {
@@ -263,14 +262,46 @@
                 });
         }
 
+        // Robot control functions
+        function sendCmdVel() {
+            const forwardBackwardValue = document.getElementById('forward-backward-slider').value;
+            const leftRightValue = document.getElementById('left-right-slider').value;
+            const velocityData = {
+                linear: { x: forwardBackwardValue, y: 0, z: 0 },
+                angular: { z: leftRightValue }
+            };
+
+            fetch('http://localhost:5000/cmd_vel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(velocityData)
+            }).then(response => response.json())
+              .then(data => {
+                  console.log('CmdVel sent', data);
+              }).catch(error => {
+                  console.error('Error sending CmdVel:', error);
+              });
+        }
+
+        // Update slider values on change
+        document.getElementById('forward-backward-slider').addEventListener('input', (e) => {
+            document.getElementById('forward-backward-velocity').textContent = e.target.value;
+            sendCmdVel();
+        });
+
+        document.getElementById('left-right-slider').addEventListener('input', (e) => {
+            document.getElementById('left-right-velocity').textContent = e.target.value;
+            sendCmdVel();
+        });
+
         // Call functions on page load
         window.onload = () => {
-            fetchScanImage(); // Fetch the scan image
-            fetchCameraImage(); // Fetch the camera image
-            fetchRosMessage(); // Fetch ROS message
-            fetchOdom(); // Fetch odom data
-            fetchGazeboModelStates(); // Fetch gazebo model states
-            fetchClock(); // Fetch clock data
+            fetchScanImage();
+            fetchCameraImage();
+            fetchRosMessage();
+            fetchOdom();
+            fetchGazeboModelStates();
+            fetchClock();
         };
 
         // Periodic updates
