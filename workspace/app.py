@@ -1,4 +1,4 @@
-from flask import Flask, jsonify  # type: ignore
+from flask import Flask, jsonify, send_file  # type: ignore
 import rospy  # type: ignore
 from std_msgs.msg import String  # type: ignore
 from nav_msgs.msg import Odometry  # type: ignore
@@ -8,6 +8,9 @@ from gazebo_msgs.msg import ModelStates  # type: ignore
 from rosgraph_msgs.msg import Clock  # type: ignore
 import subprocess
 import sys
+from PIL import Image as PILImage # type: ignore
+import numpy as np # type: ignore
+import io
 
 # -----------------------------------
 # Install Flask-CORS if not available
@@ -116,62 +119,58 @@ def get_odom_message():
 # -----------------------------------
 # /camera/rgb/image_raw Topic Functionality
 # -----------------------------------
-# def image_callback(msg):
-#     # Store the complete raw message as a dictionary
-#     message_history['/camera/rgb/image_raw'].append({
-#         "header": {"seq": msg.header.seq, "stamp": str(msg.header.stamp), "frame_id": msg.header.frame_id},
-#         "height": msg.height,
-#         "width": msg.width,
-#         "encoding": msg.encoding,
-#         "is_bigendian": msg.is_bigendian,
-#         "step": msg.step,
-#         "data": list(msg.data)  # This is the complete raw image data
-#     })
-#     if len(message_history['/camera/rgb/image_raw']) > 10:
-#         message_history['/camera/rgb/image_raw'].pop(0)
-
 def image_callback(msg):
-    # Simplified representation of image data (actual image processing not included)
-    image_data = {"height": msg.height, "width": msg.width, "encoding": msg.encoding}
-    message_history['/camera/rgb/image_raw'].append(image_data)
-    if len(message_history['/camera/rgb/image_raw']) > 10:
-        message_history['/camera/rgb/image_raw'].pop(0)
+    # Store the latest message as a dictionary
+    message_history['/camera/rgb/image_raw'] = {
+        "header": {"seq": msg.header.seq, "stamp": str(msg.header.stamp), "frame_id": msg.header.frame_id},
+        "height": msg.height,
+        "width": msg.width,
+        "encoding": msg.encoding,
+        "is_bigendian": msg.is_bigendian,
+        "step": msg.step,
+        "data": list(msg.data)  # Complete raw image data
+    }
 
 rospy.Subscriber('/camera/rgb/image_raw', Image, image_callback)
 
 @app.route('/camera/rgb/image_raw', methods=['GET'])
-def get_image_message():
-    latest_message = message_history['/camera/rgb/image_raw'][-1] if message_history['/camera/rgb/image_raw'] else "No messages yet."
-    return jsonify({"message": latest_message, "message-history": message_history['/camera/rgb/image_raw']})
+def get_image():
+    latest_message = message_history.get('/camera/rgb/image_raw', None)
+    if not latest_message:
+        return jsonify({"error": "No image data available."}), 404
 
+    # Extract image data
+    width = latest_message['width']
+    height = latest_message['height']
+    raw_data = latest_message['data']
+    image_array = np.array(raw_data, dtype=np.uint8).reshape((height, width, 3))  # Assuming RGB format
+
+    # Convert to PIL image
+    pil_image = PILImage.fromarray(image_array, mode='RGB')
+
+    # Save to a BytesIO buffer as PNG
+    buffer = io.BytesIO()
+    pil_image.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    return send_file(buffer, mimetype='image/png')
 # -----------------------------------
 # /scan Topic Functionality
 # -----------------------------------
-# def scan_callback(msg):
-#     # Store the complete raw message as a dictionary
-#     scan_data = {
-#         "angle_min": msg.angle_min,
-#         "angle_max": msg.angle_max,
-#         "angle_increment": msg.angle_increment,
-#         "time_increment": msg.time_increment,
-#         "scan_time": msg.scan_time,
-#         "range_min": msg.range_min,
-#         "range_max": msg.range_max,
-#         "ranges": list(msg.ranges),         # Full range data
-#         "intensities": list(msg.intensities)  # Full intensity data
-#     }
-#     message_history['/scan'].append(scan_data)
-#     if len(message_history['/scan']) > 10:
-#         message_history['/scan'].pop(0)
-
 def scan_callback(msg):
-    # Only keep a subset of ranges to avoid overwhelming data
-    data = {
-        "ranges": list(msg.ranges[:10]),  # First 10 range readings
+    # Calculate range_max as the maximum value from the ranges
+    valid_ranges = [r for r in msg.ranges if r > 0]  # Filter out any invalid (0 or negative) ranges
+    range_max = max(valid_ranges) if valid_ranges else 0  # If no valid ranges, fallback to 0
+
+    # Store the scan data
+    scan_data = {
+        "ranges": [r if r != float('inf') else range_max for r in msg.ranges],  # Replace 'inf' with range_max
         "angle_min": msg.angle_min,
         "angle_max": msg.angle_max,
+        "range_max": range_max  # Include calculated range_max
     }
-    message_history['/scan'].append(data)
+    
+    message_history['/scan'].append(scan_data)
     if len(message_history['/scan']) > 10:
         message_history['/scan'].pop(0)
 

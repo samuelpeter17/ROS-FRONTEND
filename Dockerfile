@@ -44,7 +44,9 @@ RUN pip3 install \
     flask \
     flask-restful \
     pyyaml \
-    rospkg
+    rospkg \
+    pillow \
+    numpy
 
 # Create the ROS workspace
 RUN mkdir -p /root/catkin_ws/src
