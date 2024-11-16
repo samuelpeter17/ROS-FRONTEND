@@ -12,7 +12,7 @@ from PIL import Image as PILImage # type: ignore
 import numpy as np # type: ignore
 import io
 from io import BytesIO
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # type: ignore
 
 # -----------------------------------
 # Install Flask-CORS if not available
