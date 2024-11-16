@@ -3,39 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROS Message Display</title>
+    <title>ROS Topics Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
 </head>
 <body>
-    <h1>Latest ROS Message:</h1>
-    <p id="latest-message">Loading...</p>
+    <h1>ROS Topics Display</h1>
 
-    <h2>Message History:</h2>
-    <ul id="message-history"></ul>
+    <!-- /ros_message Section -->
+    <div id="ros-message-section" class="topic">
+        <h2>/ros_message</h2>
+        <p><strong>Latest:</strong> <span id="ros_message-latest">Loading...</span></p>
+        <h3>History:</h3>
+        <ul id="ros_message-history"></ul>
+    </div>
 
+    <!-- /odom Section -->
+    <div id="odom-section" class="topic">
+        <h2>/odom</h2>
+        <p><strong>Latest:</strong></p>
+        <ul id="odom-latest">
+            <li id="odom-angular-vel">Angular Velocity: Loading...</li>
+            <li id="odom-linear-vel">Linear Velocity: Loading...</li>
+            <li id="odom-orientation">Orientation: Loading...</li>
+            <li id="odom-position">Position: Loading...</li>
+        </ul>
+        <h3>History:</h3>
+        <ul id="odom-history"></ul>
+    </div>
+
+    <!-- /gazebo/model_states Section -->
+    <div id="gazebo-model-states-section" class="topic">
+        <h2>/gazebo/model_states</h2>
+        <p><strong>Latest:</strong></p>
+        <ul id="gazebo-model-states-latest">
+            <li>Loading...</li>
+        </ul>
+        <h3>History:</h3>
+        <ul id="gazebo-model-states-history"></ul>
+    </div>
+
+    <!-- /clock Section -->
+    <div id="clock-section" class="topic">
+        <h2>/clock</h2>
+        <p><strong>Latest:</strong> <span id="clock-latest">Loading...</span></p>
+        <h3>History:</h3>
+        <ul id="clock-history"></ul>
+    </div>
+
+    <!-- /scan Section -->
+    <div id="scan-visualization" class="topic">
+        <h2>/scan</h2>
+        <img id="scan-image" src="" alt="Laser Scan Image" style="width: 100%; max-width: 640px; height: auto; transform: rotate(-90deg);">
+    </div>
+
+    <!-- /camera/rgb/image Section -->
+    <div id="camera-feed" class = "topic">
+        <h2>/camera/rgb/image_raw</h2>
+        <img id="camera-image" src="" alt="Camera Feed" style="width: 100%; max-width: 640px; height: auto;">
+        <p id="camera-status">Loading camera feed...</p>
+    </div>
+    
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
-        function fetchMessages() {
+        // Helper function to format odom details
+        function formatOdomMessage(data) {
+            return {
+                angularVelocity: `x: ${data.angular_velocity.x}, y: ${data.angular_velocity.y}, z: ${data.angular_velocity.z}`,
+                linearVelocity: `x: ${data.linear_velocity.x}, y: ${data.linear_velocity.y}, z: ${data.linear_velocity.z}`,
+                orientation: `w: ${data.orientation.w}, x: ${data.orientation.x}, y: ${data.orientation.y}, z: ${data.orientation.z}`,
+                position: `x: ${data.position.x}, y: ${data.position.y}, z: ${data.position.z}`
+            };
+        }
+
+        // Fetch and display /ros_message
+        function fetchRosMessage() {
             fetch('http://localhost:5000/ros_message')
                 .then(response => response.json())
                 .then(data => {
-                    // Update the latest message
-                    document.getElementById('latest-message').textContent = data.message;
+                    // Update latest message
+                    document.getElementById('ros_message-latest').textContent = data.message;
 
-                    // Update the message history
-                    const historyList = document.getElementById('message-history');
-                    historyList.innerHTML = '';  // Clear the list
-                    data["message-history"].forEach(msg => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = msg;
-                        historyList.appendChild(listItem);
-                    });
+                    // // Update history
+                    // const historyList = document.getElementById('ros_message-history');
+                    // historyList.innerHTML = ''; // Clear existing list
+                    // data["message-history"].forEach(msg => {
+                    //     const listItem = document.createElement('li');
+                    //     listItem.textContent = msg;
+                    //     historyList.appendChild(listItem);
+                    // });
                 })
                 .catch(error => {
-                    console.error('Error fetching messages:', error);
+                    console.error('Error fetching /ros_message:', error);
+                    document.getElementById('ros_message-latest').textContent = 'Error loading data';
+                    document.getElementById('ros_message-history').innerHTML = '<li class="error">Error loading history</li>';
                 });
         }
 
-        // Fetch messages every second
-        setInterval(fetchMessages, 1000);
+        // Fetch and display /odom
+        function fetchOdom() {
+            fetch('http://localhost:5000/odom')
+                .then(response => response.json())
+                .then(data => {
+                    // Format odom message details
+                    const formatted = formatOdomMessage(data.message);
+
+                    // Update latest values with a single bullet point
+                    const latestSection = document.getElementById('odom-latest');
+                    latestSection.innerHTML = `
+                        <li>
+                            Position: ${formatted.position}<br>
+                            Orientation: ${formatted.orientation}<br>
+                            Linear Velocity: ${formatted.linearVelocity}<br>
+                            Angular Velocity: ${formatted.angularVelocity}
+                        </li>
+                    `;
+
+                    // // Update history
+                    // const historyList = document.getElementById('odom-history');
+                    // historyList.innerHTML = ''; // Clear existing list
+                    // data["message-history"].forEach(msg => {
+                    //     const historyItem = document.createElement('li');
+                    //     historyItem.innerHTML = `
+                    //         Angular Velocity: x: ${msg.angular_velocity.x}, y: ${msg.angular_velocity.y}, z: ${msg.angular_velocity.z}<br>
+                    //         Linear Velocity: x: ${msg.linear_velocity.x}, y: ${msg.linear_velocity.y}, z: ${msg.linear_velocity.z}<br>
+                    //         Orientation: w: ${msg.orientation.w}, x: ${msg.orientation.x}, y: ${msg.orientation.y}, z: ${msg.orientation.z}<br>
+                    //         Position: x: ${msg.position.x}, y: ${msg.position.y}, z: ${msg.position.z}
+                    //     `;
+                    //     historyList.appendChild(historyItem);
+                    // });
+                })
+                .catch(error => {
+                    console.error('Error fetching /odom:', error);
+                    document.getElementById('odom-latest').innerHTML = '<li>Error loading data</li>';
+                    document.getElementById('odom-history').innerHTML = '<li class="error">Error loading history</li>';
+                });
+        }
+
+        // Fetch and display /gazebo/model_states
+        function fetchGazeboModelStates() {
+            fetch('http://localhost:5000/gazebo/model_states')
+                .then(response => response.json())
+                .then(data => {
+                    // Aggregate all model data into one bullet point
+                    const formattedLatest = formatGazeboModelStates(data.message);
+                    document.getElementById('gazebo-model-states-latest').innerHTML = formattedLatest;
+
+                    // // Update history
+                    // const historyList = document.getElementById('gazebo-model-states-history');
+                    // historyList.innerHTML = ''; // Clear existing list
+                    // data["message-history"].forEach(msg => {
+                    //     const historyItem = document.createElement('li');
+                    //     historyItem.innerHTML = formatGazeboModelStates(msg);
+                    //     historyList.appendChild(historyItem);
+                    // });
+                })
+                .catch(error => {
+                    console.error('Error fetching /gazebo/model_states:', error);
+                    document.getElementById('gazebo-model-states-latest').innerHTML = 'Error loading data';
+                    document.getElementById('gazebo-model-states-history').innerHTML = '<li class="error">Error loading history</li>';
+                });
+        }
+
+        // Helper function to format gazebo model states into one bullet point
+        function formatGazeboModelStates(models) {
+            // Format all model data into a single bullet point string
+            let modelDetails = models.map(model => {
+                return `${model.name}<br>
+                        Position: x: ${model.position.x}, y: ${model.position.y}, z: ${model.position.z}<br>
+                        Linear Velocity: x: ${model.linear_velocity.x !== null ? model.linear_velocity.x : 'null'}, 
+                        y: ${model.linear_velocity.y !== null ? model.linear_velocity.y : 'null'}, 
+                        z: ${model.linear_velocity.z !== null ? model.linear_velocity.z : 'null'}<br>
+                        Angular Velocity: x: ${model.angular_velocity.x !== null ? model.angular_velocity.x : 'null'}, 
+                        y: ${model.angular_velocity.y !== null ? model.angular_velocity.y : 'null'}, 
+                        z: ${model.angular_velocity.z !== null ? model.angular_velocity.z : 'null'}<br><br>`;
+            }).join('');
+
+            // Join all models' details into a single string, representing a single bullet point
+            return `<li>${modelDetails}</li>`;
+        }
+
+        // Fetch and display /clock
+        function fetchClock() {
+            fetch('http://localhost:5000/clock')
+                .then(response => response.json())
+                .then(data => {
+                    // Format the latest clock message
+                    const latestMessage = data.message ? 
+                        `Secs: ${data.message.secs}, Nsecs: ${data.message.nsecs}` : 
+                        'No messages yet.';
+                    document.getElementById('clock-latest').textContent = latestMessage;
+
+                    // // Update history
+                    // const historyList = document.getElementById('clock-history');
+                    // historyList.innerHTML = ''; // Clear existing list
+                    // data["message-history"].forEach(msg => {
+                    //     const listItem = document.createElement('li');
+                    //     listItem.textContent = `Secs: ${msg.secs}, Nsecs: ${msg.nsecs}`;
+                    //     historyList.appendChild(listItem);
+                    // });
+                })
+                .catch(error => {
+                    console.error('Error fetching /clock:', error);
+                    document.getElementById('clock-latest').textContent = 'Error loading data';
+                    document.getElementById('clock-history').innerHTML = '<li class="error">Error loading history</li>';
+                });
+        }
+
+        // Function to fetch the scan data and render the visualization
+        async function fetchScanImage() {
+            const response = await fetch('http://localhost:5000/scan-image');
+            if (response.ok) {
+                // Set the image source to the received image URL
+                document.getElementById('scan-image').src = URL.createObjectURL(await response.blob());
+            } else {
+                console.error("Error fetching scan image");
+            }
+        }
+
+        // Fetch and display the camera feed
+        function fetchCameraImage() {
+            const imageElement = document.getElementById('camera-image');
+            const statusElement = document.getElementById('camera-status');
+
+            fetch('http://localhost:5000/camera/rgb/image_raw')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.blob(); // Convert response to a blob
+                })
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob); // Create URL for the image
+                    imageElement.src = imageUrl; // Set image src to the generated URL
+                    statusElement.textContent = 'Camera feed updated.';
+                })
+                .catch(error => {
+                    console.error('Error fetching /camera/rgb/image_raw:', error);
+                    statusElement.textContent = 'Error loading camera feed.';
+                });
+        }
+
+        // Call functions on page load
+        window.onload = () => {
+            fetchScanImage(); // Fetch the scan image
+            fetchCameraImage(); // Fetch the camera image
+            fetchRosMessage(); // Fetch ROS message
+            fetchOdom(); // Fetch odom data
+            fetchGazeboModelStates(); // Fetch gazebo model states
+            fetchClock(); // Fetch clock data
+        };
+
+        // Periodic updates
+        setInterval(fetchRosMessage, 1000);
+        setInterval(fetchOdom, 1000);
+        setInterval(fetchGazeboModelStates, 1000);
+        setInterval(fetchClock, 1000);
+        setInterval(fetchScanImage, 1000);
+        setInterval(fetchCameraImage, 1000);
     </script>
 </body>
 </html>
