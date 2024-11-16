@@ -71,18 +71,19 @@
     </div>
 
     <!-- /scan Section -->
-    <div id="scan-section" class="topic">
+    <div id="scan-visualization" class="topic">
         <h2>/scan</h2>
-        <canvas id="scan-visualization" width="500" height="500" style="border:1px solid black; max-width: 100%; height: auto;"></canvas>
+        <img id="scan-image" src="" alt="Laser Scan Image" style="width: 100%; max-width: 640px; height: auto;">
     </div>
 
+    <!-- /camera/rgb/image Section -->
     <div id="camera-feed" class = "topic">
         <h2>/camera/rgb/image_raw</h2>
         <img id="camera-image" src="" alt="Camera Feed" style="width: 100%; max-width: 640px; height: auto;">
         <p id="camera-status">Loading camera feed...</p>
     </div>
     
-
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
         // Helper function to format odom details
         function formatOdomMessage(data) {
@@ -229,52 +230,14 @@
         }
 
         // Function to fetch the scan data and render the visualization
-        async function fetchScanData() {
-            const response = await fetch('http://localhost:5000/scan');
-            const data = await response.json();
-            return data.message;
-        }
-
-        // Convert scan data into polar coordinates and plot using Plotly
-        async function plotLaserScan() {
-            const scanData = await fetchScanData();
-            
-            const ranges = scanData.ranges;
-            const angle_min = scanData.angle_min;
-            const angle_max = scanData.angle_max;
-            const range_max = scanData.range_max;
-
-            // Create a range of angles based on the number of range values
-            const angles = Array.from({length: ranges.length}, (_, i) => angle_min + (i * (angle_max - angle_min) / ranges.length));
-
-            // Plot the laser scan data using Plotly
-            const trace = {
-                r: ranges,
-                theta: angles,
-                mode: 'lines',
-                type: 'scatterpolar',
-                name: 'Laser Scan',
-                marker: { color: 'blue' },
-            };
-
-            const layout = {
-                polar: {
-                    radialaxis: {
-                        range: [0, range_max], // set the max range for the radial axis
-                        showline: false,
-                    },
-                    angularaxis: {
-                        tickvals: [],  // Hide angle ticks
-                    },
-                },
-                title: 'Laser Scan Data',
-                showlegend: false,
-            };
-
-            const data = [trace];
-
-            // Create the plot in the div with id 'scan-plot'
-            Plotly.newPlot('scan-plot', data, layout);
+        async function fetchScanImage() {
+            const response = await fetch('http://localhost:5000/scan-image');
+            if (response.ok) {
+                // Set the image source to the received image URL
+                document.getElementById('scan-image').src = URL.createObjectURL(await response.blob());
+            } else {
+                console.error("Error fetching scan image");
+            }
         }
 
         // Fetch and display the camera feed
@@ -300,12 +263,22 @@
                 });
         }
 
+        // Call functions on page load
+        window.onload = () => {
+            fetchScanImage(); // Fetch the scan image
+            fetchCameraImage(); // Fetch the camera image
+            fetchRosMessage(); // Fetch ROS message
+            fetchOdom(); // Fetch odom data
+            fetchGazeboModelStates(); // Fetch gazebo model states
+            fetchClock(); // Fetch clock data
+        };
+
         // Periodic updates
         setInterval(fetchRosMessage, 1000);
         setInterval(fetchOdom, 1000);
         setInterval(fetchGazeboModelStates, 1000);
         setInterval(fetchClock, 1000);
-        setInterval(plotLaserScan, 1000);
+        setInterval(fetchScanImage, 1000);
         setInterval(fetchCameraImage, 1000);
     </script>
 </body>

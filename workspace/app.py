@@ -11,6 +11,8 @@ import sys
 from PIL import Image as PILImage # type: ignore
 import numpy as np # type: ignore
 import io
+from io import BytesIO
+import matplotlib.pyplot as plt
 
 # -----------------------------------
 # Install Flask-CORS if not available
@@ -157,30 +159,63 @@ def get_image():
 # -----------------------------------
 # /scan Topic Functionality
 # -----------------------------------
-def scan_callback(msg):
-    # Calculate range_max as the maximum value from the ranges
-    valid_ranges = [r for r in msg.ranges if r > 0]  # Filter out any invalid (0 or negative) ranges
-    range_max = max(valid_ranges) if valid_ranges else 0  # If no valid ranges, fallback to 0
+# Global variable to store the latest scan data
+latest_scan_data = {}
 
-    # Store the scan data
+def scan_callback(msg):
+    # Filter out Infinity values and calculate range_max
+    valid_ranges = [r for r in msg.ranges if r > 0 and r < float('inf')]
+    range_max = max(valid_ranges) if valid_ranges else 0
+
+    # Store the latest scan data
     scan_data = {
-        "ranges": [r if r != float('inf') else range_max for r in msg.ranges],  # Replace 'inf' with range_max
+        "ranges": [r if r != float('inf') else range_max for r in msg.ranges],
         "angle_min": msg.angle_min,
         "angle_max": msg.angle_max,
-        "range_max": range_max  # Include calculated range_max
+        "range_max": range_max
     }
     
-    message_history['/scan'].append(scan_data)
-    if len(message_history['/scan']) > 10:
-        message_history['/scan'].pop(0)
+    # Update latest scan data
+    latest_scan_data.update(scan_data)
 
+# Subscribe to /scan topic to get laser scan data
 rospy.Subscriber('/scan', LaserScan, scan_callback)
 
 @app.route('/scan', methods=['GET'])
 def get_scan_message():
-    latest_message = message_history['/scan'][-1] if message_history['/scan'] else "No messages yet."
-    return jsonify({"message": latest_message, "message-history": message_history['/scan']})
+    # Return JSON scan data to frontend
+    return jsonify(latest_scan_data)
 
+@app.route('/scan-image', methods=['GET'])
+def get_scan_image():
+    # Create the scan image from the data
+    if latest_scan_data:
+        # Extract scan data
+        ranges = latest_scan_data.get("ranges", [])
+        angle_min = latest_scan_data.get("angle_min", 0)
+        angle_max = latest_scan_data.get("angle_max", 0)
+        range_max = latest_scan_data.get("range_max", 0)
+
+        # Calculate the angles for the scan data
+        angles = np.linspace(angle_min, angle_max, len(ranges))
+
+        # Create the plot
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(111, projection='polar')
+        ax.plot(angles, ranges, color='blue')
+        ax.set_ylim(0, range_max)  # Set the range limits
+
+        # Save the plot to a BytesIO object
+        img = BytesIO()
+        plt.savefig(img, format='png')
+        img.seek(0)
+        plt.close(fig)  # Close the plot to free memory
+
+        # Send the image as a response
+        return send_file(img, mimetype='image/png')
+    else:
+        return jsonify({"error": "No scan data available"}), 404
+    
 # -----------------------------------
 # /gazebo/model_states Topic Functionality
 # -----------------------------------

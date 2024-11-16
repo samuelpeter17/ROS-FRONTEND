@@ -46,7 +46,8 @@ RUN pip3 install \
     pyyaml \
     rospkg \
     pillow \
-    numpy
+    numpy \
+    matplotlib
 
 # Create the ROS workspace
 RUN mkdir -p /root/catkin_ws/src
