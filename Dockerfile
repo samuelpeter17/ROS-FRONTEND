@@ -32,6 +32,7 @@ RUN apt-get -y update && apt-get install -y \
     ros-melodic-gmapping \
     ros-melodic-navigation \
     ros-melodic-interactive-markers \
+    ros-melodic-geometry-msgs \
     python3-pip \
     python3-dev \
     ros-melodic-turtlebot3-gazebo \
