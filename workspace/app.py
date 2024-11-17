@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, send_file  # type: ignore
+from flask import Flask, jsonify, send_file, request  # type: ignore
 import rospy  # type: ignore
 from std_msgs.msg import String  # type: ignore
 from nav_msgs.msg import Odometry  # type: ignore
@@ -13,6 +13,7 @@ import numpy as np # type: ignore
 import io
 from io import BytesIO
 import matplotlib.pyplot as plt # type: ignore
+from geometry_msgs.msg import Twist # type: ignore
 
 # -----------------------------------
 # Install Flask-CORS if not available
@@ -277,6 +278,34 @@ rospy.Subscriber('/clock', Clock, clock_callback)
 def get_clock_message():
     latest_message = message_history['/clock'][-1] if message_history['/clock'] else "No messages yet."
     return jsonify({"message": latest_message, "message-history": message_history['/clock']})
+
+# -----------------------------------
+# /cmd_vel Topic Functionality
+# -----------------------------------
+flask_ros_node = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+@app.route('/cmd_vel', methods=['POST'])
+def cmd_vel():
+    try:
+        data = request.json  # Parse incoming JSON
+        print("Received cmd_vel data:", data)
+
+        # Create a Twist message
+        twist = Twist()
+        twist.linear.x = float(data['linear']['x'])  # Forward/backward velocity
+        twist.linear.y = 0.0  # No lateral movement
+        twist.linear.z = 0.0  # No vertical movement
+        twist.angular.x = 0.0  # No roll
+        twist.angular.y = 0.0  # No pitch
+        twist.angular.z = float(data['angular']['z'])  # Angular velocity (turning)
+
+        # Publish the message
+        flask_ros_node.publish(twist)
+
+        return jsonify({"status": "success", "message": "Command sent to /cmd_vel"}), 200
+    except Exception as e:
+        print("Error:", str(e))
+        return jsonify({"status": "error", "message": str(e)}), 400
 
 # -----------------------------------
 # Flask App Runner
