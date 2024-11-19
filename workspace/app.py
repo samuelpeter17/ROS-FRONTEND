@@ -311,4 +311,4 @@ def cmd_vel():
 # Flask App Runner
 # -----------------------------------
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)  # Make Flask accessible externally
+    app.run(host='0.0.0.0', port=5002)  # Make Flask accessible externally
