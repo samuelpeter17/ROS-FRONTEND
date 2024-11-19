@@ -154,7 +154,7 @@
 
         // Fetch and display /ros_message
         function fetchRosMessage() {
-            fetch('http://localhost:5000/ros_message')
+            fetch('http://localhost:5002/ros_message')
                 .then(response => response.json())
                 .then(data => {
                     // Update latest message
@@ -168,7 +168,7 @@
 
         // Fetch and display /odom
         function fetchOdom() {
-            fetch('http://localhost:5000/odom')
+            fetch('http://localhost:5002/odom')
                 .then(response => response.json())
                 .then(data => {
                     // Format odom message details
@@ -193,7 +193,7 @@
 
         // Fetch and display /gazebo/model_states
         function fetchGazeboModelStates() {
-            fetch('http://localhost:5000/gazebo/model_states')
+            fetch('http://localhost:5002/gazebo/model_states')
                 .then(response => response.json())
                 .then(data => {
                     const formattedLatest = formatGazeboModelStates(data.message);
@@ -218,7 +218,7 @@
 
         // Fetch and display /clock
         function fetchClock() {
-            fetch('http://localhost:5000/clock')
+            fetch('http://localhost:5002/clock')
                 .then(response => response.json())
                 .then(data => {
                     const latestMessage = data.message ? 
@@ -234,7 +234,7 @@
 
         // Fetch the scan data and render the visualization
         async function fetchScanImage() {
-            const response = await fetch('http://localhost:5000/scan-image');
+            const response = await fetch('http://localhost:5002/scan-image');
             if (response.ok) {
                 document.getElementById('scan-image').src = URL.createObjectURL(await response.blob());
             } else {
@@ -247,7 +247,7 @@
             const imageElement = document.getElementById('camera-image');
             const statusElement = document.getElementById('camera-status');
 
-            fetch('http://localhost:5000/camera/rgb/image_raw')
+            fetch('http://localhost:5002/camera/rgb/image_raw')
                 .then(response => response.blob())
                 .then(blob => {
                     const imageUrl = URL.createObjectURL(blob);
@@ -269,7 +269,7 @@
                 angular: { z: leftRightValue }
             };
 
-            fetch('http://localhost:5000/cmd_vel', {
+            fetch('http://localhost:5002/cmd_vel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(velocityData)

@@ -12,9 +12,9 @@ services:
     networks:
       - my-net
     ports:
-      - "5000:5000"  # Expose Flask API port
+      - "5002:5002"  # Expose Flask API port
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/publish_message"]
+      test: ["CMD", "curl", "-f", "http://localhost:5002/publish_message"]
       interval: 30s
       retries: 3
       start_period: 30s  # Give extra time for Flask to initialize
